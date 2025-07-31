@@ -1,0 +1,337 @@
+"use client"
+
+import { useState, useMemo } from "react"
+import { useTranslation } from "react-i18next"
+import Fuse from "fuse.js"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useNavigate } from "react-router-dom";
+import { Plus, Search, Filter, Grid, List, Edit, Trash2, Link, Upload, Import } from "lucide-react"
+import { useVaultStore } from "../stores/vault-store"
+import type { Service } from "../types"
+import { CreateServiceModal } from "@/components/create-service-modal"
+import { BulkLinkServicesModal } from "@/components/bulk-link-services-modal"
+import { confirm } from "@tauri-apps/plugin-dialog"
+
+export default function ServicesLibrary() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedType, setSelectedType] = useState<string>("all")
+  const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
+  const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null)
+
+  const { vault, deleteService } = useVaultStore()
+  const services = vault?.services || []
+  const serviceTypes = vault?.serviceTypes || []
+
+  const fuse = useMemo(() => new Fuse(services, {
+    keys: ['label', 'tags'],
+    threshold: 0.3,
+    includeScore: true,
+  }), [services]);
+
+  const filteredServices = useMemo(() => {
+    let results = services;
+
+    if (searchQuery) {
+        results = fuse.search(searchQuery).map(result => result.item);
+    }
+    
+    if (selectedType !== 'all') {
+        results = results.filter(service => service.serviceTypeId === selectedType);
+    }
+
+    return results;
+  }, [services, searchQuery, selectedType, fuse]);
+  
+
+  const getServiceType = (serviceTypeId: string) => {
+    return serviceTypes.find((type) => type.id === serviceTypeId)
+  }
+
+  const toggleServiceSelection = (serviceId: string) => {
+    setSelectedServices((prev) =>
+      prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId],
+    )
+  }
+  
+  const handleAddService = () => {
+    setServiceToEdit(null)
+    setIsCreateModalOpen(true)
+  }
+
+  const handleEditService = (service: Service) => {
+    setServiceToEdit(service)
+    setIsCreateModalOpen(true)
+  }
+
+  const handleDeleteService = async (serviceId: string) => {
+    const confirmed = await confirm(t('services.delete_confirm.message'), {
+        title: t('services.delete_confirm.title')
+    });
+    if (confirmed) {
+        await deleteService(serviceId);
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    const confirmed = await confirm(t('services.delete_selected_confirm.message', { count: selectedServices.length }), {
+        title: t('services.delete_selected_confirm.title')
+    });
+    if (confirmed) {
+        await Promise.all(selectedServices.map(id => deleteService(id)));
+        setSelectedServices([]);
+    }
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('services.title')}</h1>
+          <p className="text-gray-400">{t('services.description')}</p>
+        </div>
+        <div className="flex items-center gap-2">
+            <Button
+                variant="outline"
+                className="text-white border-gray-600 hover:bg-gray-700 hover:text-white"
+                onClick={() => navigate('/services-import')}
+            >
+                <Import className="w-4 h-4 mr-2" />
+                {t('services.import_button', 'Import')}
+            </Button>
+            <Button 
+                className="bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800"
+                onClick={handleAddService}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {t('services.add_button')}
+            </Button>
+        </div>
+      </div>
+
+      <Card className="bg-gray-800 border-gray-700">
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder={t('services.search_placeholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-gray-700 border-gray-600 text-white"
+              />
+            </div>
+
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="w-48 bg-gray-700 border-gray-600 text-white">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder={t('services.filter_placeholder')} />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-700 border-gray-600">
+                <SelectItem value="all">{t('services.all_types')}</SelectItem>
+                {serviceTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id}>
+                    {type.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className={viewMode === "grid" ? "bg-blue-600" : "border-gray-600"}
+              >
+                <Grid className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                className={viewMode === "table" ? "bg-blue-600" : "border-gray-600"}
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedServices.length > 0 && (
+        <Card className="bg-blue-900 border-blue-700">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-white">{t('services.selected_count', { count: selectedServices.length })}</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="border-blue-600 text-blue-300 bg-transparent" onClick={() => setIsLinkModalOpen(true)}>
+                  <Link className="w-4 h-4 mr-2" />
+                  {t('services.link_to_account')}
+                </Button>
+                <Button size="sm" variant="outline" className="border-red-600 text-red-300 bg-transparent" onClick={handleDeleteSelected}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {t('common.delete')}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredServices.map((service) => {
+            const serviceType = getServiceType(service.serviceTypeId)
+            const isSelected = selectedServices.includes(service.id)
+
+            return (
+              <Card
+                key={service.id}
+                className={`bg-gray-800 border-gray-700 cursor-pointer transition-all hover:bg-gray-750 ${
+                  isSelected ? "ring-2 ring-blue-500" : ""
+                }`}
+                onClick={() => toggleServiceSelection(service.id)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-700 rounded-lg flex items-center justify-center">
+                        <span className="text-white font-bold">{serviceType?.name.charAt(0) || "S"}</span>
+                      </div>
+                      <div>
+                        <CardTitle className="text-white text-lg">{service.label}</CardTitle>
+                        <p className="text-gray-400 text-sm">{serviceType?.name}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white" onClick={(e) => { e.stopPropagation(); handleEditService(service); }}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-gray-400 hover:text-red-400" onClick={(e) => { e.stopPropagation(); handleDeleteService(service.id); }}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-1">
+                    {service.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="bg-gray-700 text-gray-300">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      ) : (
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="border-b border-gray-700">
+                  <tr>
+                    <th className="p-2 w-8"><Checkbox checked={selectedServices.length === filteredServices.length && filteredServices.length > 0} onCheckedChange={(checked) => setSelectedServices(checked ? filteredServices.map(s => s.id) : [])} /></th>
+                    <th className="text-left p-4 text-gray-300 font-medium">{t('services.table.service')}</th>
+                    <th className="text-left p-4 text-gray-300 font-medium">{t('services.table.type')}</th>
+                    <th className="text-left p-4 text-gray-300 font-medium">{t('services.table.tags')}</th>
+                    <th className="text-right p-4 text-gray-300 font-medium">{t('services.table.actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredServices.map((service) => {
+                    const serviceType = getServiceType(service.serviceTypeId)
+                    const isSelected = selectedServices.includes(service.id)
+
+                    return (
+                      <tr
+                        key={service.id}
+                        className={`border-b border-gray-700 hover:bg-gray-750 ${
+                          isSelected ? "bg-blue-900/20" : ""
+                        }`}
+                      >
+                        <td className="p-2 w-8"><Checkbox checked={isSelected} onCheckedChange={() => toggleServiceSelection(service.id)} /></td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-700 rounded-lg flex items-center justify-center">
+                              <span className="text-white text-sm font-bold">{serviceType?.name.charAt(0) || "S"}</span>
+                            </div>
+                            <span className="text-white font-medium">{service.label}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-gray-400">{serviceType?.name}</td>
+                        <td className="p-4">
+                          <div className="flex flex-wrap gap-1">
+                            {service.tags.slice(0, 3).map((tag) => (
+                              <Badge key={tag} variant="secondary" className="bg-gray-700 text-gray-300">
+                                {tag}
+                              </Badge>
+                            ))}
+                            {service.tags.length > 3 && (
+                              <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+                                +{service.tags.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex gap-1 justify-end">
+                            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white" onClick={() => handleEditService(service)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-red-400" onClick={() => handleDeleteService(service.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {filteredServices.length === 0 && (
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="text-center py-12">
+            <div className="text-gray-400">
+              <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg mb-2">{t('services.not_found')}</p>
+              <p className="text-sm">{t('services.try_changing_filters')}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <CreateServiceModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        serviceToEdit={serviceToEdit}
+      />
+      <BulkLinkServicesModal
+        isOpen={isLinkModalOpen}
+        onClose={() => setIsLinkModalOpen(false)}
+        serviceIdsToLink={selectedServices}
+        onLink={() => {
+            setSelectedServices([]);
+            setIsLinkModalOpen(false);
+        }}
+      />
+    </div>
+  )
+}

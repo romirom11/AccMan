@@ -1,0 +1,16 @@
+{
+  "name": "accman-root",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --dir src dev",
+    "build": "pnpm --dir src build",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.7.0"
+  },
+  "dependencies": {
+    "@tauri-apps/plugin-dialog": "~2.3.2",
+    "lucide-react": "^0.534.0"
+  }
+}

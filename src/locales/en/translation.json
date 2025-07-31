@@ -1,0 +1,324 @@
+{
+  "common": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "lock_screen": {
+    "title": "Unlock Vault",
+    "password_label": "Master Password",
+    "password_placeholder": "Enter master password",
+    "unlock_button": "Unlock",
+    "retry_button": "Try Again"
+  },
+  "setup_title": "Welcome to AccMan",
+  "setup": {
+    "main_title": "Initial Setup",
+    "main_description": "Let's get your vault ready.",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Create Vault",
+    "language": {
+      "title": "Choose Language",
+      "description": "Select your preferred language for the application."
+    },
+    "services": {
+      "title": "Select Default Services",
+      "description": "Choose which service templates you want to have available from the start. You can add new services later."
+    },
+    "password": {
+      "title": "Set Master Password",
+      "description": "This password will protect all your data. Choose a strong one.",
+      "master_password": "Master Password",
+      "confirm_password": "Confirm Password",
+      "autolock_timer": "Auto-lock timer"
+    }
+  },
+  "sidebar": {
+    "search_placeholder": "Search... (⌘+K)",
+    "nav": {
+      "dashboard": "Dashboard",
+      "accounts": "Accounts",
+      "services": "Services",
+      "service_types": "Service Types",
+      "settings": "Settings"
+    },
+    "autolock": {
+      "active": "Auto-lock in",
+      "disabled": "Auto-lock disabled"
+    },
+    "lock_button": "Lock Now"
+  },
+  "dashboard": {
+    "welcome": "Welcome!",
+    "description": "Manage your accounts and services securely.",
+    "quick_actions": {
+      "title": "Quick Actions",
+      "create_account": "Create Account",
+      "create_service": "Create Service"
+    },
+    "stats": {
+      "total_accounts": "Total Accounts",
+      "total_services": "Total Services",
+      "autolock": "Auto-lock"
+    },
+    "recent_accounts": {
+      "title": "Recently Viewed Accounts",
+      "description": "Your latest active accounts.",
+      "services_count_one": "{{count}} service",
+      "services_count_other": "{{count}} services",
+      "no_accounts": "No accounts yet.",
+      "create_first": "Create your first account"
+    }
+  },
+  "accounts": {
+    "title": "Accounts",
+    "description": "Manage all your accounts.",
+    "create_button": "Create Account",
+    "search_placeholder": "Search accounts...",
+    "filter_placeholder": "Filter by tag",
+    "all_tags": "All tags",
+    "services_count_one": "{{count}} service",
+    "services_count_other": "{{count}} services",
+    "not_found": "Accounts not found",
+    "try_changing_filters": "Try changing your search filters.",
+    "create_first": "Create your first account to get started.",
+    "create_first_button": "Create First Account",
+    "delete_confirm": {
+      "title": "Delete Account",
+      "message": "Are you sure you want to delete this account?"
+    }
+  },
+  "services": {
+    "title": "Services",
+    "description": "Manage all your services.",
+    "add_button": "Add Service",
+    "import_button": "Bulk Import",
+    "search_placeholder": "Search services by name or tag...",
+    "filter_placeholder": "Service Type",
+    "all_types": "All Types",
+    "selected_count_one": "{{count}} service selected",
+    "selected_count_other": "{{count}} services selected",
+    "link_to_account": "Link to Account",
+    "table": {
+      "service": "Service",
+      "type": "Type",
+      "tags": "Tags",
+      "actions": "Actions"
+    },
+    "not_found": "Services not found",
+    "try_changing_filters": "Try changing your filters or create a new service.",
+    "delete_confirm": {
+      "title": "Delete Service",
+      "message": "Are you sure you want to delete this service?"
+    },
+    "delete_selected_confirm": {
+      "title": "Delete Services",
+      "message_one": "Are you sure you want to delete {{count}} selected service?",
+      "message_other": "Are you sure you want to delete {{count}} selected services?"
+    },
+    "import": {
+      "title": "Import Services",
+      "description": "Import services from a file or text.",
+      "step1_title": "Step 1: Provide Data",
+      "step1_desc": "Upload a file or paste your data directly.",
+      "upload_file": "Upload a file",
+      "separator": "Separator",
+      "paste_data_label": "Or paste data here",
+      "step2_title": "Step 2: Map Columns",
+      "step2_desc": "Select the primary service type and configure mapping.",
+      "main_service_type": "Primary Service Type",
+      "select_main_type_placeholder": "Select a service type for this import...",
+      "label_generation_title": "Service Label Generation",
+      "label_strat_map": "Create from column",
+      "label_strat_generate": "Generate from pattern",
+      "label_map_column": "Column for Label",
+      "select_column_placeholder": "Select a column...",
+      "pattern": "Pattern",
+      "start_number": "Start number",
+      "select_field": "Select a field",
+      "step3_title": "Step 3: Preview & Confirm",
+      "step3_desc": "Review the data before importing. Only the first 5 rows are shown.",
+      "confirm_import": "Confirm Import",
+      "success_toast_v2": "Successfully imported {{count}} services. Skipped {{skipped}} rows.",
+      "skipped_description": "Skipped rows due to missing linked services or duplicates.",
+      "errors": {
+        "select_main_type": "Please select the primary service type for this import.",
+        "select_label_column": "Please select a column to use for the service label."
+      }
+    },
+    "fields": {
+        "ignore": "Ignore",
+        "tags": "Tags",
+        "fields": "Fields"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage security and application settings.",
+    "save_button": "Save Changes",
+    "notifications": {
+      "saved": "Settings saved successfully."
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose the application display language."
+    },
+    "security": {
+      "title": "Security",
+      "description": "Security and encryption settings."
+    },
+    "autolock": {
+      "label": "Auto-lock time",
+      "description": "Automatically lock the vault after a period of inactivity. Select 0 to disable.",
+      "disabled": "Disabled",
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes",
+      "hour_one": "{{count}} hour",
+      "hour_other": "{{count}} hours"
+    },
+    "password": {
+      "title": "Change Master Password",
+      "description": "This feature is not yet implemented.",
+      "current": "Current Password",
+      "new": "New Password",
+      "confirm": "Confirm Password",
+      "change_button": "Change Password"
+    },
+    "backup": {
+      "title": "Backup & Export",
+      "description": "Create backups and export data (not implemented).",
+      "export_button": "Export Vault",
+      "import_button": "Import Vault"
+    },
+    "danger": {
+      "title": "Danger Zone",
+      "description": "Irreversible actions with your vault.",
+      "delete_title": "Delete Vault",
+      "delete_description": "This action is irreversible. All your data will be lost forever.",
+      "delete_button": "Delete Vault"
+    }
+  },
+  "account_view": {
+    "not_found": "Account not found",
+    "unlink_confirm_message": "Are you sure you want to unlink this service?",
+    "unlink_confirm_title": "Confirmation",
+    "empty_field": "Not filled",
+    "notes": {
+      "title": "Notes",
+      "placeholder": "Add notes about this account...",
+      "no_notes": "No notes available"
+    },
+    "services": {
+      "title": "Services ({{count}})",
+      "link_button": "Link Service",
+      "no_services": "No linked services",
+      "no_services_description": "Link services to this account."
+    }
+  },
+  "service_type_constructor": {
+    "list_title": "Service Types",
+    "fields_count_one": "{{count}} field",
+    "fields_count_other": "{{count}} fields",
+    "no_types": "No service types",
+    "create_first": "Create first",
+    "creating_title": "Creating Service Type",
+    "editing_title": "Editing Service Type",
+    "main_title": "Types Constructor",
+    "welcome_description": "Create templates for different service types with custom fields.",
+    "create_button": "Create Type",
+    "delete_confirm": {
+      "title": "Delete Confirmation",
+      "message": "Are you sure you want to delete this service type? This action cannot be undone."
+    },
+    "errors": {
+      "name_id_required": "Service type name and ID are required."
+    },
+    "form": {
+      "type_name": "Type Name",
+      "system_name": "System Name (ID)",
+      "fields_title": "Fields",
+      "field_name": "Field Name",
+      "field_name_placeholder": "Login",
+      "key": "Key",
+      "type": "Type",
+      "linked_service_type": "Linked Service Type",
+      "select_type_placeholder": "Select a type...",
+      "required": "Required",
+      "masked": "Masked",
+      "no_fields": "No fields",
+      "no_fields_description": "Add fields for this service type."
+    },
+    "field_types": {
+      "text": "Text",
+      "secret": "Secret",
+      "textarea": "Multiline Text",
+      "linked_service": "Linked Service"
+    }
+  },
+  "errors": {
+    "passwords_do_not_match": "Passwords do not match.",
+    "password_too_short": "Password must be at least 8 characters long."
+  },
+  "modals": {
+    "create_account": {
+      "create_title": "Create Account",
+      "edit_title": "Edit Account",
+      "create_description": "Fill in the details for the new account.",
+      "edit_description": "Update the account details.",
+      "label": "Label",
+      "label_placeholder": "e.g., Main Gaming Profile",
+      "notes": "Notes",
+      "notes_placeholder": "Additional information about the account...",
+      "tags": "Tags (comma-separated)",
+      "tags_placeholder": "gaming, personal, main",
+      "errors": {
+        "label_required": "Account label is required."
+      }
+    },
+    "create_service": {
+      "create_title": "Create Service",
+      "edit_title": "Edit Service",
+      "create_description": "Fill in the details for the new service.",
+      "edit_description": "Update the service details.",
+      "label": "Label",
+      "label_placeholder": "e.g., My Work Google",
+      "type": "Service Type",
+      "select_type_placeholder": "Select a type",
+      "select_service_placeholder": "Select a service...",
+      "tags": "Tags (comma-separated)",
+      "tags_placeholder": "work, personal",
+      "errors": {
+        "label_type_required": "Service label and type are required."
+      }
+    },
+    "bulk_link": {
+      "title": "Link Services to Account",
+      "description_one": "{{count}} service selected. Choose an account to link it to.",
+      "description_other": "{{count}} services selected. Choose an account to link them to.",
+      "account_label": "Account",
+      "account_placeholder": "Select an account...",
+      "link_button": "Link",
+      "errors": {
+        "account_required": "Please select an account.",
+        "no_services": "No services selected to link."
+      }
+    },
+    "link_new": {
+      "title": "Link New Services",
+      "description": "Select the services you want to add to this account.",
+      "search_placeholder": "Search services...",
+      "no_services_found": "No available services found.",
+      "link_button": "Link ({{count}})",
+      "errors": {
+        "no_services": "No services selected to link."
+      }
+    }
+  },
+  "components": {
+    "linked_service": {
+      "title": "Linked Service: {{label}}"
+    }
+  }
+}

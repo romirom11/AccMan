@@ -1,0 +1,332 @@
+{
+  "common": {
+    "edit": "Редагувати",
+    "delete": "Видалити",
+    "save": "Зберегти",
+    "cancel": "Скасувати"
+  },
+  "lock_screen": {
+    "title": "Розблокувати сховище",
+    "password_label": "Майстер-пароль",
+    "password_placeholder": "Введіть майстер-пароль",
+    "unlock_button": "Розблокувати",
+    "retry_button": "Спробувати ще раз"
+  },
+  "setup_title": "Ласкаво просимо до AccMan",
+  "setup": {
+    "main_title": "Початкове налаштування",
+    "main_description": "Давайте підготуємо ваше сховище до роботи.",
+    "back": "Назад",
+    "next": "Далі",
+    "finish": "Створити сховище",
+    "language": {
+      "title": "Оберіть мову",
+      "description": "Виберіть бажану мову для застосунку."
+    },
+    "services": {
+      "title": "Вибір стандартних сервісів",
+      "description": "Виберіть, які шаблони сервісів ви хочете мати доступними одразу. Пізніше ви зможете додавати нові сервіси."
+    },
+    "password": {
+      "title": "Встановіть майстер-пароль",
+      "description": "Цей пароль захищатиме всі ваші дані. Оберіть надійний.",
+      "master_password": "Майстер-пароль",
+      "confirm_password": "Підтвердіть пароль",
+      "autolock_timer": "Таймер автоблокування"
+    }
+  },
+  "sidebar": {
+    "search_placeholder": "Пошук... (⌘+K)",
+    "nav": {
+      "dashboard": "Головна",
+      "accounts": "Акаунти",
+      "services": "Сервіси",
+      "service_types": "Типи сервісів",
+      "settings": "Налаштування"
+    },
+    "autolock": {
+      "active": "Автоблокування через",
+      "disabled": "Автоблокування вимкнено"
+    },
+    "lock_button": "Заблокувати зараз"
+  },
+  "dashboard": {
+    "welcome": "Вітаємо!",
+    "description": "Керуйте своїми акаунтами та сервісами безпечно.",
+    "quick_actions": {
+      "title": "Швидкі дії",
+      "create_account": "Створити Акаунт",
+      "create_service": "Створити Сервіс"
+    },
+    "stats": {
+      "total_accounts": "Всього акаунтів",
+      "total_services": "Всього сервісів",
+      "autolock": "Автоблокування"
+    },
+    "recent_accounts": {
+      "title": "Нещодавно переглянуті акаунти",
+      "description": "Ваші останні активні акаунти.",
+      "services_count_one": "{{count}} сервіс",
+      "services_count_few": "{{count}} сервіси",
+      "services_count_many": "{{count}} сервісів",
+      "no_accounts": "Поки що немає акаунтів.",
+      "create_first": "Створити перший акаунт"
+    }
+  },
+  "accounts": {
+    "title": "Акаунти",
+    "description": "Керуйте всіма вашими акаунтами.",
+    "create_button": "Створити Акаунт",
+    "search_placeholder": "Пошук акаунтів...",
+    "filter_placeholder": "Фільтр за тегом",
+    "all_tags": "Всі теги",
+    "services_count_one": "{{count}} сервіс",
+    "services_count_few": "{{count}} сервіси",
+    "services_count_many": "{{count}} сервісів",
+    "not_found": "Акаунти не знайдено",
+    "try_changing_filters": "Спробуйте змінити фільтри пошуку.",
+    "create_first": "Створіть свій перший акаунт для початку роботи.",
+    "create_first_button": "Створити перший акаунт",
+    "delete_confirm": {
+      "title": "Видалити акаунт",
+      "message": "Ви впевнені, що хочете видалити цей акаунт?"
+    }
+  },
+  "services": {
+    "title": "Сервіси",
+    "description": "Керуйте всіма своїми сервісами.",
+    "add_button": "Додати сервіс",
+    "import_button": "Масовий імпорт",
+    "search_placeholder": "Пошук сервісів за назвою або тегом...",
+    "filter_placeholder": "Тип сервісу",
+    "all_types": "Всі типи",
+    "selected_count_one": "Вибрано {{count}} сервіс",
+    "selected_count_few": "Вибрано {{count}} сервіси",
+    "selected_count_many": "Вибрано {{count}} сервісів",
+    "link_to_account": "Прив'язати до акаунту",
+    "table": {
+      "service": "Сервіс",
+      "type": "Тип",
+      "tags": "Теги",
+      "actions": "Дії"
+    },
+    "not_found": "Сервіси не знайдено",
+    "try_changing_filters": "Спробуйте змінити фільтри або створити новий сервіс.",
+    "delete_confirm": {
+      "title": "Видалити сервіс",
+      "message": "Ви впевнені, що хочете видалити цей сервіс?"
+    },
+    "delete_selected_confirm": {
+      "title": "Видалити сервіси",
+      "message_one": "Ви впевнені, що хочете видалити {{count}} вибраний сервіс?",
+      "message_few": "Ви впевнені, що хочете видалити {{count}} вибрані сервіси?",
+      "message_many": "Ви впевнені, що хочете видалити {{count}} вибраних сервісів?"
+    },
+    "import": {
+      "title": "Імпорт Сервісів",
+      "description": "Імпортуйте сервіси з файлу або тексту.",
+      "step1_title": "Крок 1: Надайте дані",
+      "step1_desc": "Завантажте файл або вставте дані безпосередньо.",
+      "upload_file": "Завантажити файл",
+      "separator": "Розділювач",
+      "paste_data_label": "Або вставте дані тут",
+      "step2_title": "Крок 2: Налаштуйте відповідність колонок",
+      "step2_desc": "Виберіть основний тип сервісу та налаштуйте відповідність.",
+      "main_service_type": "Основний тип сервісу",
+      "select_main_type_placeholder": "Оберіть тип сервісу для цього імпорту...",
+      "label_generation_title": "Генерація назви (Label)",
+      "label_strat_map": "Створити з колонки",
+      "label_strat_generate": "Згенерувати за шаблоном",
+      "label_map_column": "Колонка для назви",
+      "select_column_placeholder": "Оберіть колонку...",
+      "pattern": "Шаблон",
+      "start_number": "Початковий номер",
+      "select_field": "Оберіть поле",
+      "step3_title": "Крок 3: Попередній перегляд та підтвердження",
+      "step3_desc": "Перегляньте дані перед імпортом. Показано лише перші 5 рядків.",
+      "confirm_import": "Підтвердити імпорт",
+      "success_toast_v2": "Успішно імпортовано {{count}} сервісів. Пропущено {{skipped}} рядків.",
+      "skipped_description": "Рядки пропущено через відсутність зв'язаних сервісів або дублікати.",
+      "errors": {
+        "select_main_type": "Будь ласка, оберіть основний тип сервісу для цього імпорту.",
+        "select_label_column": "Будь ласка, оберіть колонку для назви сервісу."
+      }
+    },
+    "fields": {
+        "ignore": "Ігнорувати",
+        "tags": "Теги",
+        "fields": "Поля"
+    }
+  },
+  "settings": {
+    "title": "Налаштування",
+    "description": "Керуйте параметрами безпеки та застосунку.",
+    "save_button": "Зберегти зміни",
+    "notifications": {
+      "saved": "Налаштування успішно збережено."
+    },
+    "language": {
+      "title": "Мова",
+      "description": "Оберіть мову відображення застосунку."
+    },
+    "security": {
+      "title": "Безпека",
+      "description": "Налаштування безпеки та шифрування."
+    },
+    "autolock": {
+      "label": "Час до автоблокування",
+      "description": "Автоматично блокувати сховище після періоду неактивності. Виберіть 0, щоб вимкнути.",
+      "disabled": "Вимкнено",
+      "minutes_one": "{{count}} хвилина",
+      "minutes_few": "{{count}} хвилини",
+      "minutes_many": "{{count}} хвилин",
+      "hour_one": "{{count}} година",
+      "hour_few": "{{count}} години",
+      "hour_many": "{{count}} годин"
+    },
+    "password": {
+      "title": "Зміна майстер-пароля",
+      "description": "Ця функція ще не реалізована.",
+      "current": "Поточний пароль",
+      "new": "Новий пароль",
+      "confirm": "Підтвердіть пароль",
+      "change_button": "Змінити пароль"
+    },
+    "backup": {
+      "title": "Резервне копіювання та експорт",
+      "description": "Створення резервних копій та експорт даних (не реалізовано).",
+      "export_button": "Експортувати сховище",
+      "import_button": "Імпортувати сховище"
+    },
+    "danger": {
+      "title": "Небезпечна зона",
+      "description": "Незворотні дії з вашим сховищем.",
+      "delete_title": "Видалити сховище",
+      "delete_description": "Ця дія незворотна. Всі ваші дані будуть втрачені назавжди.",
+      "delete_button": "Видалити сховище"
+    }
+  },
+  "account_view": {
+    "not_found": "Акаунт не знайдено",
+    "unlink_confirm_message": "Ви впевнені, що хочете відв'язати цей сервіс?",
+    "unlink_confirm_title": "Підтвердження",
+    "empty_field": "Не заповнено",
+    "notes": {
+      "title": "Нотатки",
+      "placeholder": "Додайте нотатки про цей акаунт...",
+      "no_notes": "Нотатки відсутні"
+    },
+    "services": {
+      "title": "Сервіси ({{count}})",
+      "link_button": "Прив'язати сервіс",
+      "no_services": "Немає прив'язаних сервісів",
+      "no_services_description": "Прив'яжіть сервіси до цього акаунту."
+    }
+  },
+  "service_type_constructor": {
+    "list_title": "Типи сервісів",
+    "fields_count_one": "{{count}} поле",
+    "fields_count_few": "{{count}} поля",
+    "fields_count_many": "{{count}} полів",
+    "no_types": "Немає типів сервісів",
+    "create_first": "Створити перший",
+    "creating_title": "Створення типу сервісу",
+    "editing_title": "Редагування типу сервісу",
+    "main_title": "Конструктор типів",
+    "welcome_description": "Створюйте шаблони для різних типів сервісів з власними полями.",
+    "create_button": "Створити тип",
+    "delete_confirm": {
+      "title": "Підтвердження видалення",
+      "message": "Ви впевнені, що хочете видалити цей тип сервісу? Цю дію неможливо скасувати."
+    },
+    "errors": {
+      "name_id_required": "Назва та ID типу сервісу є обов'язковими."
+    },
+    "form": {
+      "type_name": "Назва типу",
+      "system_name": "Системне ім'я (ID)",
+      "fields_title": "Поля",
+      "field_name": "Назва поля",
+      "field_name_placeholder": "Логін",
+      "key": "Ключ",
+      "type": "Тип",
+      "linked_service_type": "Тип зв'язаного сервісу",
+      "select_type_placeholder": "Виберіть тип...",
+      "required": "Обов'язкове",
+      "masked": "Маскувати",
+      "no_fields": "Немає полів",
+      "no_fields_description": "Додайте поля для цього типу сервісу."
+    },
+    "field_types": {
+      "text": "Текст",
+      "secret": "Секрет",
+      "textarea": "Багаторядковий текст",
+      "linked_service": "Зв'язаний сервіс"
+    }
+  },
+  "errors": {
+    "passwords_do_not_match": "Паролі не співпадають.",
+    "password_too_short": "Пароль має містити щонайменше 8 символів."
+  },
+  "modals": {
+    "create_account": {
+      "create_title": "Створити акаунт",
+      "edit_title": "Редагувати акаунт",
+      "create_description": "Заповніть дані для нового акаунту.",
+      "edit_description": "Оновіть дані акаунту.",
+      "label": "Назва",
+      "label_placeholder": "Наприклад, Головний ігровий профіль",
+      "notes": "Нотатки",
+      "notes_placeholder": "Додаткова інформація про акаунт...",
+      "tags": "Теги (через кому)",
+      "tags_placeholder": "gaming, personal, main",
+      "errors": {
+        "label_required": "Назва акаунту є обов'язковою."
+      }
+    },
+    "create_service": {
+      "create_title": "Створити сервіс",
+      "edit_title": "Редагувати сервіс",
+      "create_description": "Заповніть дані для нового сервісу.",
+      "edit_description": "Оновіть дані сервісу.",
+      "label": "Назва",
+      "label_placeholder": "Наприклад, Мій робочий Google",
+      "type": "Тип сервісу",
+      "select_type_placeholder": "Виберіть тип",
+      "select_service_placeholder": "Виберіть сервіс...",
+      "tags": "Теги (через кому)",
+      "tags_placeholder": "робота, особисте",
+      "errors": {
+        "label_type_required": "Назва та тип сервісу є обов'язковими."
+      }
+    },
+    "bulk_link": {
+      "title": "Прив'язати сервіси до акаунту",
+      "description_one": "Вибрано {{count}} сервіс. Оберіть акаунт, до якого його прив'язати.",
+      "description_few": "Вибрано {{count}} сервіси. Оберіть акаунт, до якого їх прив'язати.",
+      "description_many": "Вибрано {{count}} сервісів. Оберіть акаунт, до якого їх прив'язати.",
+      "account_label": "Акаунт",
+      "account_placeholder": "Виберіть акаунт...",
+      "link_button": "Прив'язати",
+      "errors": {
+        "account_required": "Будь ласка, виберіть акаунт.",
+        "no_services": "Не вибрано жодного сервісу для прив'язки."
+      }
+    },
+    "link_new": {
+      "title": "Прив'язати нові сервіси",
+      "description": "Виберіть сервіси, які ви хочете додати до цього акаунту.",
+      "search_placeholder": "Пошук сервісів...",
+      "no_services_found": "Не знайдено доступних сервісів.",
+      "link_button": "Прив'язати ({{count}})",
+      "errors": {
+        "no_services": "Не вибрано жодного сервісу для прив'язки."
+      }
+    }
+  },
+  "components": {
+    "linked_service": {
+      "title": "Зв'язаний сервіс: {{label}}"
+    }
+  }
+}

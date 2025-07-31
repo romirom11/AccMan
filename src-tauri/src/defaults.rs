@@ -24,8 +24,6 @@ pub fn get_default_service_types() -> Vec<ServiceType> {
                 create_field("d-1", "username", "Username", "text", false, true),
                 create_field("d-2", "email", "Email", "text", false, true),
                 create_field("d-3", "password", "Password", "secret", true, true),
-                create_field("d-4", "email_access_url", "Email Access URL", "url", false, false),
-                create_field("d-5", "email_access_password", "Email Access Password", "secret", true, false),
                 create_field("d-6", "auth_token", "Auth Token", "textarea", true, false),
                 create_field("d-7", "2fa_key", "2FA Key", "secret", true, false),
                 create_field("d-8", "backup_codes", "Backup Codes", "textarea", true, false),
@@ -40,17 +38,15 @@ pub fn get_default_service_types() -> Vec<ServiceType> {
                 create_field("t-1", "display_name", "Name", "text", false, true),
                 create_field("t-2", "email", "Email", "text", false, true),
                 create_field("t-3", "password", "Password", "secret", true, true),
-                create_field("t-4", "email_access_url", "Email Access URL", "url", false, false),
-                create_field("t-5", "email_access_password", "Email Access Password", "secret", true, false),
                 create_field("t-6", "auth_token", "Auth Token", "textarea", true, false),
                 create_field("t-7", "2fa_key", "2FA Key", "secret", true, false),
                 create_field("t-8", "backup_codes", "Backup Codes", "textarea", true, false),
             ],
         },
-        // --- Gmail ---
+        // --- Email ---
         ServiceType {
-            id: "mail".to_string(),
-            name: "mail".to_string(),
+            id: "email".to_string(),
+            name: "Email".to_string(),
             icon: "Mail".to_string(),
             fields: vec![
                 create_field("g-1", "display_name", "Name", "text", false, false),
@@ -74,7 +70,7 @@ pub fn get_default_service_types() -> Vec<ServiceType> {
         // --- EVM Wallet ---
         ServiceType {
             id: "evm-wallet".to_string(),
-            name: "Гаманець EVM".to_string(),
+            name: "EVM Wallet".to_string(),
             icon: "Wallet".to_string(),
             fields: vec![
                 create_field("evm-1", "address", "Address", "text", false, true),

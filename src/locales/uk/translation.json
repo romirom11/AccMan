@@ -37,6 +37,11 @@
   },
   "sidebar": {
     "search_placeholder": "Пошук... (⌘+K)",
+    "search": {
+      "no_results": "Результатів не знайдено",
+      "accounts": "Акаунти",
+      "services": "Сервіси"
+    },
     "nav": {
       "dashboard": "Головна",
       "accounts": "Акаунти",
@@ -322,6 +327,19 @@
       "errors": {
         "no_services": "Не вибрано жодного сервісу для прив'язки."
       }
+    }
+  },
+  "service_view": {
+    "not_found": "Сервіс не знайдено",
+    "delete_confirm_title": "Видалити сервіс",
+    "delete_confirm_message": "Ви впевнені, що хочете видалити цей сервіс? Цю дію неможливо скасувати.",
+    "empty_field": "Не встановлено",
+    "required_field": "Це поле є обов'язковим",
+    "data": {
+      "title": "Дані сервісу"
+    },
+    "linked_accounts": {
+      "title": "Зв'язані акаунти"
     }
   },
   "components": {

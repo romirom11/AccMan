@@ -3,6 +3,26 @@
 version = 3
 
 [[package]]
+name = "AccMan"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "lazy_static",
+ "log",
+ "rand 0.8.5",
+ "ring",
+ "scrypt",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-log",
+ "thiserror 1.0.69",
+ "zeroize",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -89,26 +109,6 @@ name = "anyhow"
 version = "1.0.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
-
-[[package]]
-name = "app"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "lazy_static",
- "log",
- "rand 0.8.5",
- "ring",
- "scrypt",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-log",
- "thiserror 1.0.69",
- "zeroize",
-]
 
 [[package]]
 name = "arrayvec"

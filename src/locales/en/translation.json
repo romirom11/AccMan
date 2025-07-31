@@ -37,6 +37,11 @@
   },
   "sidebar": {
     "search_placeholder": "Search... (⌘+K)",
+    "search": {
+      "no_results": "No results found",
+      "accounts": "Accounts",
+      "services": "Services"
+    },
     "nav": {
       "dashboard": "Dashboard",
       "accounts": "Accounts",
@@ -314,6 +319,19 @@
       "errors": {
         "no_services": "No services selected to link."
       }
+    }
+  },
+  "service_view": {
+    "not_found": "Service not found",
+    "delete_confirm_title": "Delete Service",
+    "delete_confirm_message": "Are you sure you want to delete this service? This action cannot be undone.",
+    "empty_field": "Not set",
+    "required_field": "This field is required",
+    "data": {
+      "title": "Service Data"
+    },
+    "linked_accounts": {
+      "title": "Linked Accounts"
     }
   },
   "components": {

@@ -1,12 +1,13 @@
+import React, { useEffect } from "react";
 import { MemoryRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useVaultStore } from "./stores/vault-store";
-import { useEffect } from "react";
 import LockScreen from "./pages/lock-screen";
 import Sidebar from "./components/sidebar";
 import Dashboard from "./pages/dashboard";
 import Accounts from "./pages/accounts";
 import AccountView from "./pages/account-view";
 import ServicesLibrary from "./pages/services-library";
+import ServiceView from "./pages/service-view";
 import ServiceTypeConstructor from "./pages/service-type-constructor";
 import ServicesImport from "./pages/services-import";
 import Settings from "./pages/settings";
@@ -14,7 +15,7 @@ import Setup from "./pages/setup";
 import { Toaster } from "@/components/ui/sonner";
 import { useIdle } from "./hooks/use-idle";
 
-const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { appStatus } = useVaultStore();
     
     if (appStatus === 'needs_setup') {
@@ -42,7 +43,7 @@ const MainLayout = () => {
     return (
         <div className="flex h-screen">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto ml-64">
+            <main className="flex-1 overflow-y-auto" style={{ marginLeft: '16rem' }}>
                 <Outlet />
             </main>
         </div>
@@ -80,6 +81,7 @@ function App() {
                                 <Route path="/accounts" element={<Accounts />} />
                                 <Route path="/account/:id" element={<AccountView />} />
                                 <Route path="/services" element={<ServicesLibrary />} />
+                                <Route path="/service/:id" element={<ServiceView />} />
                                 <Route path="/services-import" element={<ServicesImport />} />
                                 <Route path="/service-types" element={<ServiceTypeConstructor />} />
                                 <Route path="/settings" element={<Settings />} />

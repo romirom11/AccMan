@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import Fuse from "fuse.js";
 import { useVaultStore } from "../stores/vault-store";
 import type { Service, ServiceField } from "../types";
 import { toast } from "sonner";
@@ -25,6 +30,7 @@ export function CreateServiceModal({ isOpen, onClose, serviceToEdit }: CreateSer
   const [selectedTypeId, setSelectedTypeId] = useState<string>("");
   const [data, setData] = useState<Record<string, string>>({});
   const [tags, setTags] = useState("");
+  const [openComboboxes, setOpenComboboxes] = useState<Record<string, boolean>>({});
 
   const serviceTypes = vault?.serviceTypes || [];
   const services = vault?.services || [];
@@ -79,17 +85,52 @@ export function CreateServiceModal({ isOpen, onClose, serviceToEdit }: CreateSer
     
     if (field.type === 'linked_service') {
         const linkedServices = services.filter(s => s.serviceTypeId === field.linkedServiceTypeId);
+        const selectedService = linkedServices.find(s => s.id === value);
+        const isOpen = openComboboxes[field.key] || false;
+        
         return (
-            <Select value={value} onValueChange={(val) => handleDataChange(field.key, val)}>
-                <SelectTrigger className="bg-gray-700 border-gray-600">
-                    <SelectValue placeholder={t('modals.create_service.select_service_placeholder')}/>
-                </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
-                    {linkedServices.map(ls => (
-                        <SelectItem key={ls.id} value={ls.id}>{ls.label}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <Popover open={isOpen} onOpenChange={(open: boolean) => setOpenComboboxes(prev => ({ ...prev, [field.key]: open }))}>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isOpen}
+                        className="w-full justify-between bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                    >
+                        {selectedService ? selectedService.label : t('modals.create_service.select_service_placeholder')}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0 bg-gray-700 border-gray-600">
+                    <Command className="bg-gray-700">
+                        <CommandInput placeholder="Пошук сервісів..." className="bg-gray-700 text-white" />
+                        <CommandList>
+                            <CommandEmpty className="text-gray-400">Сервіси не знайдено.</CommandEmpty>
+                            <CommandGroup>
+                                {linkedServices.map((service) => (
+                                    <CommandItem
+                                        key={service.id}
+                                        value={service.label}
+                                        onSelect={() => {
+                                            handleDataChange(field.key, service.id);
+                                            setOpenComboboxes(prev => ({ ...prev, [field.key]: false }));
+                                        }}
+                                        className="text-white hover:bg-gray-600"
+                                    >
+                                        <Check
+                                            className={cn(
+                                                "mr-2 h-4 w-4",
+                                                value === service.id ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        {service.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
         )
     }
 

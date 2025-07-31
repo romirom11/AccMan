@@ -1,14 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Edit, Trash2, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Link, Save, Unlink } from "lucide-react"
+import { Edit, Trash2, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Link, Save, Unlink, ArrowLeft } from "lucide-react"
 import { useVaultStore } from "../stores/vault-store"
 import { LinkNewServicesModal } from "@/components/link-new-services-modal"
 import { confirm } from "@tauri-apps/plugin-dialog"
@@ -17,6 +17,7 @@ import { ServiceField } from "@/types"
 
 export default function AccountView() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { t } = useTranslation();
   const { vault, updateAccount } = useVaultStore()
   const [editingNotes, setEditingNotes] = useState(false)
@@ -98,6 +99,28 @@ export default function AccountView() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Back Button */}
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={() => navigate('/accounts')}
+          className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-white">{account.label}</h1>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {account.tags.map((tag) => (
+              <Badge key={tag} className="bg-blue-600 text-white text-xs">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Account Header */}
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>

@@ -1,21 +1,24 @@
 "use client"
 
 import { useState } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2, Eye, EyeOff, Copy, Globe } from "lucide-react"
+import { Edit, Trash2, Eye, EyeOff, Copy, Globe, ArrowLeft } from "lucide-react"
 import { useVaultStore } from "../stores/vault-store"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { ServiceField } from "@/types"
+import { CreateServiceModal } from "@/components/create-service-modal"
 
 export default function ServiceView() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { t } = useTranslation();
   const { vault, deleteService } = useVaultStore()
   const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   
   const service = vault?.services.find((srv) => srv.id === id)
   const serviceType = service ? vault?.serviceTypes.find((type) => type.id === service.serviceTypeId) : null
@@ -34,12 +37,17 @@ export default function ServiceView() {
   }
 
   const handleDeleteService = async () => {
-    const confirmed = await confirm(t('service_view.delete_confirm_message'), { title: t('service_view.delete_confirm_title') });
+    const confirmed = await confirm(t('service_view.delete_confirm_message'), {
+      title: t('service_view.delete_confirm_title')
+    });
     if (confirmed) {
       await deleteService(service.id);
-      // Navigate back to services page
-      window.history.back();
+      navigate('/services');
     }
+  }
+
+  const handleEditService = () => {
+    setIsEditModalOpen(true);
   }
 
   const toggleSecretVisibility = (fieldKey: string) => {
@@ -85,6 +93,22 @@ export default function ServiceView() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Back Button */}
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={() => navigate('/services')}
+          className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-white">{service.label}</h1>
+          <p className="text-gray-400">{serviceType.name}</p>
+        </div>
+      </div>
+
       {/* Service Header */}
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
@@ -106,7 +130,11 @@ export default function ServiceView() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="border-gray-600 text-gray-300 bg-transparent">
+              <Button 
+                variant="outline" 
+                className="border-gray-600 text-gray-300 bg-transparent"
+                onClick={handleEditService}
+              >
                 <Edit className="w-4 h-4 mr-2" />
                 {t('common.edit')}
               </Button>
@@ -210,6 +238,12 @@ export default function ServiceView() {
           </CardContent>
         </Card>
       )}
+
+      <CreateServiceModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        serviceToEdit={service}
+      />
     </div>
   )
 }

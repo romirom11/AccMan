@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import Fuse from "fuse.js"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Grid, List, Edit, Trash2, Link, Upload, Import } from "lucide-react"
+import { useNavigate, useLocation } from "react-router-dom";
+import { Plus, Search, Filter, Grid, List, Edit, Trash2, Link, Upload, Import, MousePointer, CheckSquare } from "lucide-react"
 import { useVaultStore } from "../stores/vault-store"
 import type { Service } from "../types"
 import { CreateServiceModal } from "@/components/create-service-modal"
@@ -20,6 +20,7 @@ import { confirm } from "@tauri-apps/plugin-dialog"
 export default function ServicesLibrary() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedType, setSelectedType] = useState<string>("all")
@@ -27,10 +28,25 @@ export default function ServicesLibrary() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null)
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
 
   const { vault, deleteService } = useVaultStore()
   const services = vault?.services || []
   const serviceTypes = vault?.serviceTypes || []
+
+  // Handle edit service from navigation state
+  useEffect(() => {
+    const state = location.state as { editServiceId?: string } | null;
+    if (state?.editServiceId) {
+      const serviceToEdit = services.find(s => s.id === state.editServiceId);
+      if (serviceToEdit) {
+        setServiceToEdit(serviceToEdit);
+        setIsCreateModalOpen(true);
+      }
+      // Clear the state to prevent reopening on refresh
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, services, navigate, location.pathname])
 
   const fuse = useMemo(() => new Fuse(services, {
     keys: ['label', 'tags'],
@@ -61,6 +77,14 @@ export default function ServicesLibrary() {
     setSelectedServices((prev) =>
       prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId],
     )
+  }
+
+  const handleServiceClick = (serviceId: string) => {
+    if (isSelectionMode) {
+      toggleServiceSelection(serviceId)
+    } else {
+      navigate(`/service/${serviceId}`)
+    }
   }
   
   const handleAddService = () => {
@@ -146,12 +170,27 @@ export default function ServicesLibrary() {
               </SelectContent>
             </Select>
 
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={isSelectionMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setIsSelectionMode(!isSelectionMode)
+                  if (!isSelectionMode) {
+                    setSelectedServices([])
+                  }
+                }}
+                className={isSelectionMode ? "bg-green-600 hover:bg-green-700" : "border-gray-600 text-gray-300 hover:bg-gray-700"}
+                title={isSelectionMode ? "Вимкнути режим виділення" : "Увімкнути режим виділення"}
+              >
+                {isSelectionMode ? <CheckSquare className="w-4 h-4" /> : <MousePointer className="w-4 h-4" />}
+              </Button>
+              <div className="w-px h-6 bg-gray-600" />
               <Button
                 variant={viewMode === "grid" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("grid")}
-                className={viewMode === "grid" ? "bg-blue-600" : "border-gray-600"}
+                className={viewMode === "grid" ? "bg-blue-600 hover:bg-blue-700" : "border-gray-600 text-gray-300 hover:bg-gray-700"}
               >
                 <Grid className="w-4 h-4" />
               </Button>
@@ -159,7 +198,7 @@ export default function ServicesLibrary() {
                 variant={viewMode === "table" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("table")}
-                className={viewMode === "table" ? "bg-blue-600" : "border-gray-600"}
+                className={viewMode === "table" ? "bg-blue-600 hover:bg-blue-700" : "border-gray-600 text-gray-300 hover:bg-gray-700"}
               >
                 <List className="w-4 h-4" />
               </Button>
@@ -200,7 +239,7 @@ export default function ServicesLibrary() {
                 className={`bg-gray-800 border-gray-700 cursor-pointer transition-all hover:bg-gray-750 ${
                   isSelected ? "ring-2 ring-blue-500" : ""
                 }`}
-                onClick={() => toggleServiceSelection(service.id)}
+                onClick={() => handleServiceClick(service.id)}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -258,11 +297,12 @@ export default function ServicesLibrary() {
                     return (
                       <tr
                         key={service.id}
-                        className={`border-b border-gray-700 hover:bg-gray-750 ${
+                        className={`border-b border-gray-700 hover:bg-gray-750 cursor-pointer ${
                           isSelected ? "bg-blue-900/20" : ""
                         }`}
+                        onClick={() => handleServiceClick(service.id)}
                       >
-                        <td className="p-2 w-8"><Checkbox checked={isSelected} onCheckedChange={() => toggleServiceSelection(service.id)} /></td>
+                        <td className="p-2 w-8"><Checkbox checked={isSelected} onCheckedChange={() => toggleServiceSelection(service.id)} onClick={(e) => e.stopPropagation()} /></td>
                         <td className="p-4">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-700 rounded-lg flex items-center justify-center">
@@ -288,10 +328,10 @@ export default function ServicesLibrary() {
                         </td>
                         <td className="p-4">
                           <div className="flex gap-1 justify-end">
-                            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white" onClick={() => handleEditService(service)}>
+                            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white" onClick={(e) => { e.stopPropagation(); handleEditService(service); }}>
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-red-400" onClick={() => handleDeleteService(service.id)}>
+                            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-red-400" onClick={(e) => { e.stopPropagation(); handleDeleteService(service.id); }}>
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>

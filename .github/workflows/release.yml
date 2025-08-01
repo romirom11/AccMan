@@ -33,16 +33,19 @@ jobs:
         # webkitgtk 4.0 is for Tauri v1 - webkitgtk 4.1 is for Tauri v2.
         # You can remove the one that doesn't apply to your app to speed up the workflow a bit.
 
-      - name: setup pnpm
+      - name: setup pnpm and install dependencies
         uses: pnpm/action-setup@v3
         with:
           version: 8
+          run_install:
+            cwd: src
 
       - name: setup node
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
-          cache: 'pnpm' # Set this to npm, yarn or pnpm.
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: src/pnpm-lock.yaml
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -55,9 +58,7 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - name: install frontend dependencies
-        run: pnpm install --frozen-lockfile
-        working-directory: ./src
+
 
       - uses: tauri-apps/tauri-action@v0
         env:

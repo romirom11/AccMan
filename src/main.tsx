@@ -1,6 +1,6 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
-import App from "./App"
+import App from "./app"
 import "./app/globals.css"
 import "./i18n"; // Import the i18n configuration
 

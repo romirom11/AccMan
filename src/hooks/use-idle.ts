@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 export function useIdle(timeout: number): boolean {
   const [isIdle, setIsIdle] = useState(false);
-  const timeoutId = useRef<number>();
+  const timeoutId = useRef<number | undefined>(undefined);
 
   const resetTimer = () => {
     if (timeoutId.current) {

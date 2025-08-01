@@ -27,7 +27,7 @@ i18n
       caches: ['localStorage'],
     },
     // Add compatibility for ukrainian pluralization rules
-    compatibilityJSON: 'v3', 
+    compatibilityJSON: 'v4', 
   });
 
 export default i18n;

@@ -57,6 +57,10 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      - name: check lockfile exists
+        run: ls -la
+        working-directory: ./src
+
       - name: install frontend dependencies
         run: pnpm install --frozen-lockfile
         working-directory: ./src

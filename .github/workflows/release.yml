@@ -57,6 +57,7 @@ jobs:
 
       - name: install frontend dependencies
         run: pnpm install --frozen-lockfile
+        working-directory: ./src
 
       - uses: tauri-apps/tauri-action@v0
         env:

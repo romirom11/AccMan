@@ -31,3 +31,4 @@ zeroize = { version = "1.7.0", features = ["zeroize_derive"] }
 thiserror = "1.0"
 lazy_static = "1.4.0"
 tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"

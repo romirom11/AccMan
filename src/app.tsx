@@ -14,6 +14,7 @@ import Settings from "./pages/settings";
 import Setup from "./pages/setup";
 import { Toaster } from "@/components/ui/sonner";
 import { useIdle } from "./hooks/use-idle";
+import { useUpdater } from "./hooks/use-updater";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { appStatus } = useVaultStore();
@@ -52,9 +53,11 @@ const MainLayout = () => {
 
 function App() {
   const { appStatus, checkInitialStatus } = useVaultStore();
+  const { checkForUpdates } = useUpdater();
 
   useEffect(() => {
     checkInitialStatus();
+    checkForUpdates();
   }, []);
 
   if (appStatus === 'loading') {

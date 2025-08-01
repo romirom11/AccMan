@@ -36,7 +36,7 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 8
+          version: 9
           run_install: false
 
       - name: setup node
@@ -57,15 +57,9 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - name: check lockfile exists
-        run: ls -la
-        working-directory: ./src
-
       - name: install frontend dependencies
         run: pnpm install --frozen-lockfile
         working-directory: ./src
-
-
 
       - uses: tauri-apps/tauri-action@v0
         env:

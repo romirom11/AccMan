@@ -7,22 +7,12 @@ settings:
 importers:
 
   .:
-    dependencies:
-      '@tauri-apps/plugin-dialog':
-        specifier: ~2.3.2
-        version: 2.3.2
-      lucide-react:
-        specifier: ^0.534.0
-        version: 0.534.0(react@19.1.1)
     devDependencies:
       '@tauri-apps/cli':
         specifier: 2.7.0
         version: 2.7.0
 
 packages:
-
-  '@tauri-apps/api@2.7.0':
-    resolution: {integrity: sha512-v7fVE8jqBl8xJFOcBafDzXFc8FnicoH3j8o8DNNs0tHuEBmXUDqrCOAzMRX0UkfpwqZLqvrvK0GNQ45DfnoVDg==}
 
   '@tauri-apps/cli-darwin-arm64@2.7.0':
     resolution: {integrity: sha512-4sSrBlZuGb78UKkVQHdexzrYCamsiFQXFFuh9EI8vdq9PgTG8oXByQNIMx+p01HB594kLhaySrgozst6EFPoVQ==}
@@ -95,21 +85,7 @@ packages:
     engines: {node: '>= 10'}
     hasBin: true
 
-  '@tauri-apps/plugin-dialog@2.3.2':
-    resolution: {integrity: sha512-cNLo9YeQSC0MF4IgXnotHsqEgJk72MBZLXmQPrLA95qTaaWiiaFQ38hIMdZ6YbGUNkr3oni3EhU+AD5jLHcdUA==}
-
-  lucide-react@0.534.0:
-    resolution: {integrity: sha512-4Bz7rujQ/mXHqCwjx09ih/Q9SCizz9CjBV5repw9YSHZZZaop9/Oj0RgCDt6WdEaeAPfbcZ8l2b4jzApStqgNw==}
-    peerDependencies:
-      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
-  react@19.1.1:
-    resolution: {integrity: sha512-w8nqGImo45dmMIfljjMwOGtbmC/mk4CMYhWIicdSflH91J9TyCyczcPFXJzrZ/ZXcgGRFeP6BU0BEJTw6tZdfQ==}
-    engines: {node: '>=0.10.0'}
-
 snapshots:
-
-  '@tauri-apps/api@2.7.0': {}
 
   '@tauri-apps/cli-darwin-arm64@2.7.0':
     optional: true
@@ -157,13 +133,3 @@ snapshots:
       '@tauri-apps/cli-win32-arm64-msvc': 2.7.0
       '@tauri-apps/cli-win32-ia32-msvc': 2.7.0
       '@tauri-apps/cli-win32-x64-msvc': 2.7.0
-
-  '@tauri-apps/plugin-dialog@2.3.2':
-    dependencies:
-      '@tauri-apps/api': 2.7.0
-
-  lucide-react@0.534.0(react@19.1.1):
-    dependencies:
-      react: 19.1.1
-
-  react@19.1.1: {}

@@ -2,7 +2,7 @@ export interface ServiceField {
   id: string
   key: string
   label: string
-  type: "text" | "secret" | "textarea" | "url" | "linked_service"
+  type: "text" | "secret" | "textarea" | "url" | "linked_service" | "2fa"
   masked: boolean
   required: boolean
   linkedServiceTypeId?: string

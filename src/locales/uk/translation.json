@@ -266,7 +266,8 @@
       "text": "Текст",
       "secret": "Секрет",
       "textarea": "Багаторядковий текст",
-      "linked_service": "Зв'язаний сервіс"
+      "linked_service": "Пов'язаний сервіс",
+      "2fa": "Ключ 2FA"
     }
   },
   "errors": {
@@ -301,6 +302,7 @@
       "select_service_placeholder": "Виберіть сервіс...",
       "tags": "Теги (через кому)",
       "tags_placeholder": "робота, особисте",
+      "2fa_placeholder": "Введіть секретний ключ 2FA",
       "errors": {
         "label_type_required": "Назва та тип сервісу є обов'язковими."
       }

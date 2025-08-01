@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Fuse from "fuse.js";
 import { useVaultStore } from "../stores/vault-store";
@@ -132,6 +132,19 @@ export function CreateServiceModal({ isOpen, onClose, serviceToEdit }: CreateSer
                 </PopoverContent>
             </Popover>
         )
+    }
+
+    if (field.type === '2fa') {
+      return (
+        <div className="flex items-center gap-2">
+          <Input 
+            value={value} 
+            onChange={(e) => handleDataChange(field.key, e.target.value)} 
+            className="bg-gray-700 border-gray-600 font-mono flex-grow"
+            placeholder={t('modals.create_service.2fa_placeholder')}
+          />
+        </div>
+      )
     }
 
     switch (field.type) {

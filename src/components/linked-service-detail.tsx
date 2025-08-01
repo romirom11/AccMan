@@ -4,10 +4,11 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Eye, EyeOff, Copy, Edit, Link2 } from "lucide-react"
+import { Eye, EyeOff, Copy, Edit, Link2, KeyRound, RefreshCw } from "lucide-react"
 import { useVaultStore } from "@/stores/vault-store"
 import { Service, ServiceField } from "@/types"
 import { CreateServiceModal } from "./create-service-modal"
+import * as OTPAuth from "otpauth";
 
 interface LinkedServiceDetailProps {
   service: Service
@@ -18,6 +19,7 @@ export function LinkedServiceDetail({ service }: LinkedServiceDetailProps) {
   const { t } = useTranslation();
   const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [generatedTokens, setGeneratedTokens] = useState<Record<string, string | null>>({})
 
   const serviceType = vault?.serviceTypes.find((st) => st.id === service.serviceTypeId)
 
@@ -38,6 +40,29 @@ export function LinkedServiceDetail({ service }: LinkedServiceDetailProps) {
     const isSecret = field.type === "secret" || field.masked
     const isVisible = visibleSecrets[field.key]
     return isSecret && !isVisible ? "••••••••" : value
+  }
+
+  const generateTotp = (fieldId: string, secret: string) => {
+    try {
+      const totp = new OTPAuth.TOTP({
+        issuer: "AccMan",
+        label: service.label,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        secret: secret,
+      });
+      const token = totp.generate();
+      setGeneratedTokens(prev => ({ ...prev, [fieldId]: token }));
+
+      setTimeout(() => {
+        setGeneratedTokens(prev => ({ ...prev, [fieldId]: null }));
+      }, 30000);
+
+    } catch (error) {
+      console.error("Error generating TOTP:", error);
+      setGeneratedTokens(prev => ({ ...prev, [fieldId]: "Error" }));
+    }
   }
 
   if (!serviceType) return null
@@ -71,7 +96,13 @@ export function LinkedServiceDetail({ service }: LinkedServiceDetailProps) {
                   <div className="flex-1">
                     <label className="text-xs font-medium text-gray-400 block">{field.label}</label>
                     <div className="text-white font-mono text-sm">
-                        {renderFieldValue(field, value)}
+                        {generatedTokens[field.id] ? (
+                          <div className="flex items-center gap-2">
+                            <span className="tracking-widest text-lg text-green-400">{generatedTokens[field.id]}</span>
+                          </div>
+                        ) : (
+                          renderFieldValue(field, value)
+                        )}
                     </div>
                   </div>
                   <div className="flex gap-1 ml-2">
@@ -93,6 +124,16 @@ export function LinkedServiceDetail({ service }: LinkedServiceDetailProps) {
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
+                    {field.type === '2fa' && value && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => generateTotp(field.id, value)}
+                        className="text-gray-400 hover:text-white h-7 w-7"
+                      >
+                        {generatedTokens[field.id] ? <RefreshCw className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                      </Button>
+                    )}
                   </div>
                 </div>
               )

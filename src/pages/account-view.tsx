@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Edit, Trash2, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Link, Save, Unlink, ArrowLeft } from "lucide-react"
+import { Edit, Trash2, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Link, Save, Unlink, ArrowLeft, KeyRound, RefreshCw } from "lucide-react"
 import { useVaultStore } from "../stores/vault-store"
 import { LinkNewServicesModal } from "@/components/link-new-services-modal"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { LinkedServiceDetail } from "@/components/linked-service-detail"
+import * as OTPAuth from "otpauth";
 import { ServiceField } from "@/types"
 
 export default function AccountView() {
@@ -27,6 +28,7 @@ export default function AccountView() {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
   const [openServices, setOpenServices] = useState<Record<string, boolean>>({})
+  const [generatedTokens, setGeneratedTokens] = useState<Record<string, string | null>>({})
 
   const linkedServices = vault?.services.filter((service) => account?.linkedServices.includes(service.id)) || []
   const allServices = vault?.services || [];
@@ -95,6 +97,29 @@ export default function AccountView() {
     const displayValue = isSecret && !isVisible ? "••••••••" : value
 
     return displayValue || <span className="text-gray-500 italic">{t('account_view.empty_field')}</span>;
+  }
+
+  const generateTotp = (fieldId: string, secret: string, label: string) => {
+    try {
+      const totp = new OTPAuth.TOTP({
+        issuer: "AccMan",
+        label: label,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        secret: secret,
+      });
+      const token = totp.generate();
+      setGeneratedTokens(prev => ({ ...prev, [fieldId]: token }));
+
+      setTimeout(() => {
+        setGeneratedTokens(prev => ({ ...prev, [fieldId]: null }));
+      }, 30000);
+
+    } catch (error) {
+      console.error("Error generating TOTP:", error);
+      setGeneratedTokens(prev => ({ ...prev, [fieldId]: "Error" }));
+    }
   }
 
   return (
@@ -261,7 +286,13 @@ export default function AccountView() {
                                 <div className="flex-1">
                                   <label className="text-sm font-medium text-gray-300 block mb-1">{field.label}</label>
                                   <div className="text-white font-mono">
-                                    {renderFieldValue(field, value)}
+                                    {generatedTokens[field.id] ? (
+                                      <div className="flex items-center gap-2">
+                                        <span className="tracking-widest text-lg text-green-400">{generatedTokens[field.id]}</span>
+                                      </div>
+                                    ) : (
+                                      renderFieldValue(field, value)
+                                    )}
                                   </div>
                                 </div>
                                 <div className="flex gap-2 ml-4">
@@ -281,6 +312,16 @@ export default function AccountView() {
                                       className="text-gray-400 hover:text-white"
                                     >
                                       <Copy className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                  {field.type === '2fa' && value && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => generateTotp(field.id, value, service.label)}
+                                      className="text-gray-400 hover:text-white"
+                                    >
+                                      {generatedTokens[field.id] ? <RefreshCw className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
                                     </Button>
                                   )}
                                 </div>

@@ -259,7 +259,8 @@
       "text": "Text",
       "secret": "Secret",
       "textarea": "Multiline Text",
-      "linked_service": "Linked Service"
+      "linked_service": "Linked Service",
+      "2fa": "2FA Key"
     }
   },
   "errors": {
@@ -294,6 +295,7 @@
       "select_service_placeholder": "Select a service...",
       "tags": "Tags (comma-separated)",
       "tags_placeholder": "work, personal",
+      "2fa_placeholder": "Enter 2FA secret key",
       "errors": {
         "label_type_required": "Service label and type are required."
       }

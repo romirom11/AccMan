@@ -211,6 +211,7 @@ export default function ServiceTypeConstructor() {
                                     <SelectItem value="secret">{t('service_type_constructor.field_types.secret')}</SelectItem>
                                     <SelectItem value="textarea">{t('service_type_constructor.field_types.textarea')}</SelectItem>
                                     <SelectItem value="url">URL</SelectItem>
+                                    <SelectItem value="2fa">{t('service_type_constructor.field_types.2fa')}</SelectItem>
                                     <SelectItem value="linked_service">{t('service_type_constructor.field_types.linked_service')}</SelectItem>
                                   </SelectContent>
                                 </Select>

@@ -6,11 +6,13 @@ import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2, Eye, EyeOff, Copy, Globe, ArrowLeft } from "lucide-react"
+import { Edit, Trash2, Eye, EyeOff, Copy, Globe, ArrowLeft, KeyRound, RefreshCw } from "lucide-react"
 import { useVaultStore } from "../stores/vault-store"
 import { confirm } from "@tauri-apps/plugin-dialog"
+import * as OTPAuth from "otpauth";
 import { ServiceField } from "@/types"
 import { CreateServiceModal } from "@/components/create-service-modal"
+import { LinkedServiceDetail } from "@/components/linked-service-detail"
 
 export default function ServiceView() {
   const { id } = useParams<{ id: string }>()
@@ -19,6 +21,8 @@ export default function ServiceView() {
   const { vault, deleteService } = useVaultStore()
   const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [generatedTokens, setGeneratedTokens] = useState<Record<string, string | null>>({})
+  const [expandedLinkedServices, setExpandedLinkedServices] = useState<Record<string, boolean>>({})
   
   const service = vault?.services.find((srv) => srv.id === id)
   const serviceType = service ? vault?.serviceTypes.find((type) => type.id === service.serviceTypeId) : null
@@ -78,17 +82,43 @@ export default function ServiceView() {
     if (field.type === 'linked_service' && value) {
       const linkedService = allServices.find(s => s.id === value);
       if (linkedService) {
-        const linkedServiceType = vault?.serviceTypes.find(st => st.id === linkedService.serviceTypeId);
         return (
-          <div className="flex items-center gap-2 text-blue-400">
-            <Globe className="w-4 h-4" />
-            <span>{linkedService.label} ({linkedServiceType?.name})</span>
-          </div>
+          <Button 
+            variant="link"
+            className="p-0 h-auto text-blue-400 hover:text-blue-300"
+            onClick={() => setExpandedLinkedServices(prev => ({...prev, [field.id]: !prev[field.id]}))}
+          >
+            <Globe className="w-4 h-4 mr-2" />
+            <span>{linkedService.label}</span>
+          </Button>
         );
       }
     }
 
     return displayValue || <span className="text-gray-500 italic">{t('service_view.empty_field')}</span>;
+  }
+
+  const generateTotp = (fieldId: string, secret: string) => {
+    try {
+      const totp = new OTPAuth.TOTP({
+        issuer: "AccMan",
+        label: service.label,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        secret: secret,
+      });
+      const token = totp.generate();
+      setGeneratedTokens(prev => ({ ...prev, [fieldId]: token }));
+
+      setTimeout(() => {
+        setGeneratedTokens(prev => ({ ...prev, [fieldId]: null }));
+      }, 30000);
+
+    } catch (error) {
+      console.error("Error generating TOTP:", error);
+      setGeneratedTokens(prev => ({ ...prev, [fieldId]: "Error" }));
+    }
   }
 
   return (
@@ -168,8 +198,19 @@ export default function ServiceView() {
                 <div className="flex-1">
                   <label className="text-sm font-medium text-gray-300 block mb-2">{field.label}</label>
                   <div className="text-white font-mono text-lg">
-                    {renderFieldValue(field, value)}
+                    {generatedTokens[field.id] ? (
+                      <div className="flex items-center gap-4">
+                        <span className="tracking-widest text-2xl text-green-400">{generatedTokens[field.id]}</span>
+                      </div>
+                    ) : (
+                      renderFieldValue(field, value)
+                    )}
                   </div>
+                  {field.type === 'linked_service' && value && expandedLinkedServices[field.id] && (
+                    <div className="mt-2">
+                      <LinkedServiceDetail service={allServices.find(s => s.id === value)!} />
+                    </div>
+                  )}
                   {field.required && !value && (
                     <p className="text-red-400 text-xs mt-1">{t('service_view.required_field')}</p>
                   )}
@@ -195,6 +236,16 @@ export default function ServiceView() {
                       <Copy className="w-4 h-4" />
                     </Button>
                   )}
+                  {field.type === '2fa' && value && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => generateTotp(field.id, value)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      {generatedTokens[field.id] ? <RefreshCw className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                    </Button>
+                  )}
                 </div>
               </div>
             )
@@ -215,7 +266,7 @@ export default function ServiceView() {
                 <div
                   key={account.id}
                   className="flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-650 transition-colors cursor-pointer"
-                  onClick={() => window.location.href = `/account/${account.id}`}
+                  onClick={() => navigate(`/accounts/${account.id}`)}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-blue-600 rounded-lg flex items-center justify-center">

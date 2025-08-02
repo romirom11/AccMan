@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Easy management for multi-accounting"
 authors = ["romirom11"]
 license = ""
-repository = ""
+repository = "https://github.com/romirom11/AccMan"
 edition = "2021"
 rust-version = "1.77.2"
 

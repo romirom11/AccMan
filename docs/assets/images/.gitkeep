@@ -1,0 +1,27 @@
+# Images for Documentation
+
+This folder contains images and screenshots for the AccMan documentation.
+
+## File Organization
+
+- `screenshots/` - Application screenshots
+- `diagrams/` - Architecture and flow diagrams
+- `icons/` - Icons and logos
+- `ui/` - UI mockups and designs
+
+## Image Guidelines
+
+- Use PNG format for screenshots
+- Use SVG format for diagrams and icons when possible
+- Optimize images for web (compress before adding)
+- Use descriptive filenames (e.g., `dashboard-overview.png`)
+- Keep images under 1MB when possible
+
+## Usage in Markdown
+
+```markdown
+![Alt text](assets/images/screenshot.png)
+```
+
+For GitHub Pages, images will be accessible at:
+`https://yourusername.github.io/AccMan/assets/images/filename.png`

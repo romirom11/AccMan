@@ -12,7 +12,23 @@
 
 ## About
 
-AccMan is a secure desktop application for comprehensive account management. Whether you're managing multiple accounts across different services, organizing personal credentials, or handling business accounts, AccMan provides a flexible and secure solution to store, organize, and quickly access all your account data in one encrypted vault. 
+AccMan is a secure desktop application for comprehensive account management. Whether you're managing multiple accounts across different services, organizing personal credentials, or handling business accounts, AccMan provides a flexible and secure solution to store, organize, and quickly access all your account data in one encrypted vault.
+
+## 📸 Screenshots
+
+<div align="center">
+  
+<img src="docs/assets/images/screenshots/1.png" alt="AccMan View" width="800">
+
+<img src="docs/assets/images/screenshots/2.png" alt="AccMan View" width="800">
+
+<img src="docs/assets/images/screenshots/3.png" alt="AccMan View" width="800">
+
+<img src="docs/assets/images/screenshots/4.png" alt="AccMan View" width="800">
+
+<img src="docs/assets/images/screenshots/5.png" alt="AccMan View" width="800">
+
+</div>
 
 ## ✨ Features
 

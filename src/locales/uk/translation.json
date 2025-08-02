@@ -362,7 +362,8 @@
       "account_added": "Акаунт успішно додано",
       "account_updated": "Акаунт успішно оновлено",
       "account_deleted": "Акаунт успішно видалено",
-      "services_linked": "Сервіси успішно прив'язано"
+      "services_linked": "Сервіси успішно прив'язано",
+      "services_deleted": "Сервіси успішно видалені"
     },
     "error": {
       "prefix": "Помилка"

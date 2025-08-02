@@ -1,7 +1,7 @@
 # 🔐 AccMan - Account Manager
 
-<div align="center">
-  <img src="accman.png" alt="AccMan Logo" width="128" height="128">
+<div align="center" markdown="1">
+  <img src="docs/assets/images/accman.png" alt="AccMan Logo" width="128" height="128">
   
   **Secure and intuitive desktop application for managing your accounts and services.**
   
@@ -79,7 +79,7 @@ Download the latest version from the [Releases](https://github.com/romirom11/Acc
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/romankudin/AccMan.git
+   git clone https://github.com/romirom11/AccMan.git
    cd AccMan
    ```
 
@@ -153,7 +153,7 @@ AccMan/
 - 🎛️ Advanced field customization with templates
 - 📥 Improved import from popular password managers
 
-Want to suggest a feature? [Open an issue](https://github.com/romankudin/AccMan/issues/new?template=feature_request.md) or start a [discussion](https://github.com/romankudin/AccMan/discussions)!
+Want to suggest a feature? [Open an issue](https://github.com/romirom11/AccMan/issues/new?template=feature_request.md) or start a [discussion](https://github.com/romirom11/AccMan/discussions)!
 
 ## 🌍 Internationalization
 

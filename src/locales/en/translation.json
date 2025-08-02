@@ -354,7 +354,8 @@
       "account_added": "Account successfully added",
       "account_updated": "Account successfully updated",
       "account_deleted": "Account successfully deleted",
-      "services_linked": "Services successfully linked"
+      "services_linked": "Services successfully linked",
+      "services_deleted": "Services successfully deleted"
     },
     "error": {
       "prefix": "Error"

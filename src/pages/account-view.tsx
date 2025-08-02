@@ -287,6 +287,7 @@ export default function AccountView() {
                         <div className="space-y-4">
                           {serviceType?.fields.map((field) => {
                             const value = service.data[field.key] || ""
+                            if (!value) return null
                             
                             if (field.type === 'linked_service') {
                                 const linkedService = allServices.find(s => s.id === value);

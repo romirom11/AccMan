@@ -16,13 +16,15 @@ import { confirm } from "@tauri-apps/plugin-dialog"
 export default function AccountsList() {
   const navigate = useNavigate()
   const { t } = useTranslation();
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const { vault, deleteAccount, accountsViewMode, setAccountsViewMode } = useVaultStore()
+  const viewMode = accountsViewMode;
+  const setViewMode = setAccountsViewMode;
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedTag, setSelectedTag] = useState("all")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [accountToEdit, setAccountToEdit] = useState<Account | null>(null)
 
-  const { vault, deleteAccount } = useVaultStore()
+
   const accounts = vault?.accounts || []
   
   const allTags = ["all", ...Array.from(new Set(accounts.flatMap((account) => account.tags)))]

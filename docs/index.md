@@ -5,8 +5,8 @@ title: AccMan - Account Manager
 
 # 🔐 AccMan - Account Manager
 
-<div align="center">
-  <img src="../accman.png" alt="AccMan Logo" width="128" height="128">
+<div align="center" markdown="1">
+  <img src="assets/images/accman.png" alt="AccMan Logo" width="128" height="128">
   
   **Secure and intuitive desktop application for managing your accounts and services.**
   

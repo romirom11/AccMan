@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Edit, Trash2, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Link, Save, Unlink, ArrowLeft, KeyRound, RefreshCw } from "lucide-react"
 import { useVaultStore } from "../stores/vault-store"
 import { LinkNewServicesModal } from "@/components/link-new-services-modal"
+import { CreateAccountModal } from "@/components/create-account-modal"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { LinkedServiceDetail } from "@/components/linked-service-detail"
 import * as OTPAuth from "otpauth";
@@ -20,12 +21,13 @@ export default function AccountView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { t } = useTranslation();
-  const { vault, updateAccount } = useVaultStore()
+  const { vault, updateAccount, deleteAccount } = useVaultStore()
   const [editingNotes, setEditingNotes] = useState(false)
   
   const account = vault?.accounts.find((acc) => acc.id === id)
   const [notes, setNotes] = useState(account?.notes || "")
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
   const [openServices, setOpenServices] = useState<Record<string, boolean>>({})
   const [generatedTokens, setGeneratedTokens] = useState<Record<string, string | null>>({})
@@ -49,6 +51,19 @@ export default function AccountView() {
     if (!account) return;
     await updateAccount({ ...account, notes });
     setEditingNotes(false);
+  }
+
+  const handleEditAccount = () => {
+    setIsEditModalOpen(true);
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!account) return;
+    const confirmed = await confirm(t('accounts.delete_confirm.message'), { title: t('accounts.delete_confirm.title') });
+    if (confirmed) {
+      await deleteAccount(account.id);
+      navigate('/accounts');
+    }
   }
 
   const handleUnlinkService = async (serviceId: string) => {
@@ -161,13 +176,18 @@ export default function AccountView() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="border-gray-600 text-gray-300 bg-transparent">
+              <Button 
+                variant="outline" 
+                className="border-gray-600 text-gray-300 bg-transparent"
+                onClick={handleEditAccount}
+              >
                 <Edit className="w-4 h-4 mr-2" />
                 {t('common.edit')}
               </Button>
               <Button
                 variant="outline"
                 className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white bg-transparent"
+                onClick={handleDeleteAccount}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 {t('common.delete')}
@@ -348,6 +368,11 @@ export default function AccountView() {
         isOpen={isLinkModalOpen}
         onClose={() => setIsLinkModalOpen(false)}
         accountId={account.id}
+      />
+      <CreateAccountModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        accountToEdit={account}
       />
     </div>
   )

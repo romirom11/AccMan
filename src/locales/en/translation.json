@@ -340,5 +340,24 @@
     "linked_service": {
       "title": "Linked Service: {{label}}"
     }
+  },
+  "api": {
+    "success": {
+      "vault_created": "Vault successfully created",
+      "password_changed": "Master password successfully changed",
+      "service_type_added": "Service type successfully added",
+      "service_type_updated": "Service type successfully updated",
+      "service_type_deleted": "Service type successfully deleted",
+      "service_added": "Service successfully added",
+      "service_updated": "Service successfully updated",
+      "service_deleted": "Service successfully deleted",
+      "account_added": "Account successfully added",
+      "account_updated": "Account successfully updated",
+      "account_deleted": "Account successfully deleted",
+      "services_linked": "Services successfully linked"
+    },
+    "error": {
+      "prefix": "Error"
+    }
   }
 }

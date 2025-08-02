@@ -1,0 +1,60 @@
+# Site settings
+title: AccMan Documentation
+description: Secure and intuitive desktop application for managing your accounts and services
+baseurl: "/AccMan"
+url: "https://romirom11.github.io"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+theme: minima
+
+# Navigation
+header_pages:
+  - getting-started.md
+  - user-guide.md
+  - developer-guide.md
+  - faq.md
+  - contributing.md
+  - github-pages-setup.md
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "default"
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "default"
+
+# Social links
+github_username: romirom11
+
+# Google Analytics (optional)
+# google_analytics: UA-XXXXXXXX-X

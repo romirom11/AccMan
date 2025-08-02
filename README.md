@@ -12,18 +12,37 @@
 
 ## About
 
-AccMan is a secure and intuitive desktop application for managing your accounts and services. It provides a simple and efficient way to store, access, and organize your login credentials across different platforms. 
+AccMan is a secure desktop application for comprehensive account management. Whether you're managing multiple accounts across different services, organizing personal credentials, or handling business accounts, AccMan provides a flexible and secure solution to store, organize, and quickly access all your account data in one encrypted vault.
+
+## 📸 Screenshots
+
+<div align="center">
+  
+<img src="docs/assets/images/screenshots/1.png" alt="AccMan View" width="800">
+
+<img src="docs/assets/images/screenshots/2.png" alt="AccMan View" width="800">
+
+<img src="docs/assets/images/screenshots/3.png" alt="AccMan View" width="800">
+
+<img src="docs/assets/images/screenshots/4.png" alt="AccMan View" width="800">
+
+<img src="docs/assets/images/screenshots/5.png" alt="AccMan View" width="800">
+
+</div>
 
 ## ✨ Features
 
-- 🔒 **Secure Storage** - Your data is encrypted and stored locally
-- 🌐 **Multi-Service Support** - Manage accounts across different platforms
-- 🎨 **Modern UI** - Clean and intuitive interface built with React
-- 🔄 **Auto-Updates** - Stay up-to-date with the latest features
-- 🌍 **Internationalization** - Available in multiple languages (English, Ukrainian)
+- 🔒 **Secure Local Storage** - All data encrypted and stored locally on your device
+- 🎯 **Multi-Account Organization** - Manage dozens of accounts per service efficiently
+- 🏷️ **Service Templates** - Create reusable templates for different platforms
+- 🔑 **2FA & TOTP Support** - Store 2FA keys and generate TOTP codes instantly
+- 🎛️ **Customizable Fields** - Configure custom fields for each service type
+- 📥 **Bulk Import/Export** - Import multiple accounts from text files
+- 🔍 **Advanced Search** - Quickly find accounts across all services
+- 🔗 **Account Linking** - Link multiple services to single accounts
+- 🎨 **Clean Interface** - Intuitive UI designed for managing large datasets
+- 🌍 **Multi-language** - Available in English and Ukrainian
 - 📱 **Cross-Platform** - Works on Windows, macOS, and Linux
-- 🚀 **Fast Performance** - Built with Tauri for optimal speed and security
-- 🔑 **2FA Key Management** - Store and manage 2FA keys for secure authentication
 
 ## 🚀 Quick Start
 
@@ -116,6 +135,26 @@ AccMan/
 - **Build Tool**: Vite
 - **Package Manager**: pnpm
 
+## 🚧 Roadmap
+
+### Upcoming Features
+
+- 📊 **Account Analytics** - Track usage patterns across your accounts
+- 🔄 **Bulk Operations** - Mass edit, delete, or update multiple accounts
+- 📋 **Account Templates** - Quick setup for common account types
+- 🏷️ **Advanced Tagging** - Better organization with hierarchical tags
+- 📱 **Mobile Companion** - View-only mobile app for quick access
+- 🔄 **Backup & Restore** - Automated backup solutions
+- 🎨 **Themes** - Dark/light mode and custom themes
+
+### In Development
+
+- 🔑 Enhanced 2FA management with QR code scanning
+- 🎛️ Advanced field customization with templates
+- 📥 Improved import from popular password managers
+
+Want to suggest a feature? [Open an issue](https://github.com/romankudin/AccMan/issues/new?template=feature_request.md) or start a [discussion](https://github.com/romankudin/AccMan/discussions)!
+
 ## 🌍 Internationalization
 
 AccMan supports multiple languages:
@@ -158,5 +197,5 @@ If you have any questions or need help:
 ---
 
 <div align="center">
-  Made with ❤️ by Roman Kudin
+  Made with ❤️ by romirom11
 </div>

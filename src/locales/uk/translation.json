@@ -348,5 +348,24 @@
     "linked_service": {
       "title": "Зв'язаний сервіс: {{label}}"
     }
+  },
+  "api": {
+    "success": {
+      "vault_created": "Сховище успішно створено",
+      "password_changed": "Майстер-пароль успішно змінено",
+      "service_type_added": "Тип сервісу успішно додано",
+      "service_type_updated": "Тип сервісу успішно оновлено",
+      "service_type_deleted": "Тип сервісу успішно видалено",
+      "service_added": "Сервіс успішно додано",
+      "service_updated": "Сервіс успішно оновлено",
+      "service_deleted": "Сервіс успішно видалено",
+      "account_added": "Акаунт успішно додано",
+      "account_updated": "Акаунт успішно оновлено",
+      "account_deleted": "Акаунт успішно видалено",
+      "services_linked": "Сервіси успішно прив'язано"
+    },
+    "error": {
+      "prefix": "Помилка"
+    }
   }
 }

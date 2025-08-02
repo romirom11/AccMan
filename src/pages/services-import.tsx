@@ -23,9 +23,8 @@ export default function ServicesImport() {
   const serviceTypes = vault?.serviceTypes || []
   
   const [importData, setImportData] = useState<string>("")
-  const [separator, setSeparator] = useState<string>("||")
-  const [header, setHeader] = useState<string[]>([])
-  const [rows, setRows] = useState<string[][]>([])
+  const [separator, setSeparator] = useState<string>(":")
+
   const [columnMapping, setColumnMapping] = useState<Record<number, string>>({})
   const [primaryServiceTypeId, setPrimaryServiceTypeId] = useState<string>("")
   const [isImporting, setIsImporting] = useState(false)
@@ -40,17 +39,21 @@ export default function ServicesImport() {
     return serviceTypes.find((st) => st.id === primaryServiceTypeId)
   }, [primaryServiceTypeId, serviceTypes])
 
+  const { header, rows } = useMemo(() => {
+    if (!importData) {
+      return { header: [], rows: [] };
+    }
+    const lines = importData.trim().split('\n').filter(line => line.length > 0);
+    if (lines.length > 0) {
+      const header = lines[0].split(separator).map((_, index) => `Column ${index + 1}`);
+      const rows = lines.map(line => line.split(separator));
+      return { header, rows };
+    }
+    return { header: [], rows: [] };
+  }, [importData, separator]);
+
   const handleDataChange = (data: string) => {
     setImportData(data)
-    const lines = data.trim().split('\n').filter(line => line.length > 0)
-    if (lines.length > 0) {
-      const firstLine = lines[0].split(separator)
-      setHeader(firstLine.map((_, index) => `Column ${index + 1}`))
-      setRows(lines.map(line => line.split(separator)))
-    } else {
-      setHeader([])
-      setRows([])
-    }
   }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {

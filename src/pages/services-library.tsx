@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { useNavigate, useLocation } from "react-router-dom";
 import { Plus, Search, Filter, Grid, List, Edit, Trash2, Link, Upload, Import, MousePointer, CheckSquare } from "lucide-react"
-import { useVaultStore } from "../stores/vault-store"
+import { useVaultStore } from "../stores/vault-store";
+import { toast } from "sonner";
 import type { Service } from "../types"
 import { CreateServiceModal } from "@/components/create-service-modal"
 import { BulkLinkServicesModal } from "@/components/bulk-link-services-modal"
@@ -21,7 +22,9 @@ export default function ServicesLibrary() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
+  const { vault, deleteService, deleteServices, servicesViewMode, setServicesViewMode } = useVaultStore()
+  const viewMode = servicesViewMode;
+  const setViewMode = setServicesViewMode;
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedType, setSelectedType] = useState<string>("all")
   const [selectedServices, setSelectedServices] = useState<string[]>([])
@@ -30,7 +33,7 @@ export default function ServicesLibrary() {
   const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null)
   const [isSelectionMode, setIsSelectionMode] = useState(false)
 
-  const { vault, deleteService } = useVaultStore()
+
   const services = vault?.services || []
   const serviceTypes = vault?.serviceTypes || []
 
@@ -111,8 +114,10 @@ export default function ServicesLibrary() {
         title: t('services.delete_selected_confirm.title')
     });
     if (confirmed) {
-        await Promise.all(selectedServices.map(id => deleteService(id)));
+        await deleteServices(selectedServices);
+        toast.success(t('api.success.services_deleted', { count: selectedServices.length }));
         setSelectedServices([]);
+        setIsSelectionMode(false);
     }
   }
 

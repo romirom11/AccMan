@@ -181,6 +181,29 @@ pub fn update_settings(
     Ok(())
 }
 
+#[tauri::command]
+pub fn delete_services(
+    path: State<'_, StoragePath>,
+    service_ids: Vec<String>,
+    app_state: State<'_, AppState>,
+    session_state: State<'_, SessionState>,
+) -> Result<(), CommandError> {
+    let mut vault_guard = app_state.0.lock().unwrap();
+    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
+
+    vault.services.retain(|s| !service_ids.contains(&s.id));
+
+    // Also remove these services from any account that links to them
+    for account in &mut vault.accounts {
+        account.linked_services.retain(|id| !service_ids.contains(id));
+    }
+
+    drop(vault_guard);
+    save_vault_with_session_password(&path, &app_state, &session_state)?;
+
+    Ok(())
+}
+
 
 // --- ServiceType Commands ---
 

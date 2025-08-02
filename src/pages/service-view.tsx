@@ -189,6 +189,7 @@ export default function ServiceView() {
         <CardContent className="space-y-4">
           {serviceType.fields.map((field) => {
             const value = service.data[field.key] || ""
+            if (!value) return null
             
             return (
               <div

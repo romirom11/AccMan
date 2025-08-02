@@ -11,6 +11,7 @@ title: AccMan - Account Manager
   **Secure and intuitive desktop application for managing your accounts and services.**
   
   [![Release](https://github.com/romirom11/AccMan/actions/workflows/release.yml/badge.svg)](https://github.com/romirom11/AccMan/actions/workflows/release.yml)
+  [![GitHub Repo stars](https://img.shields.io/github/stars/romirom11/AccMan?style=social)](https://github.com/romirom11/AccMan)
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/romirom11/AccMan/releases)
 </div>

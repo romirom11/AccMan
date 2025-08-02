@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { toast } from "sonner";
+import i18n from "@/i18n";
 import { vaultApi } from "@/api/vault";
 import type { Vault, ServiceType, Service, Account, Settings } from "@/types";
 
@@ -10,6 +12,8 @@ interface VaultStore {
   appStatus: AppStatus;
   vault: Vault | null;
   error: string | null;
+  servicesViewMode: "grid" | "table";
+  accountsViewMode: "grid" | "list";
   checkInitialStatus: () => Promise<void>;
   unlock: (password: string) => Promise<void>;
   createVault: (password: string, settings: Settings, selectedServiceTypeIds: string[]) => Promise<void>;
@@ -29,12 +33,16 @@ interface VaultStore {
   addServices: (services: Service[]) => Promise<void>; // Add this
   updateService: (service: Service) => Promise<void>;
   deleteService: (serviceId: string) => Promise<void>;
+  deleteServices: (serviceIds: string[]) => Promise<void>;
 
   // Accounts
   addAccount: (account: Account) => Promise<void>;
   updateAccount: (account: Account) => Promise<void>;
   deleteAccount: (accountId: string) => Promise<void>;
   linkServicesToAccount: (accountId: string, serviceIds: string[]) => Promise<void>;
+
+  setServicesViewMode: (mode: "grid" | "table") => void;
+  setAccountsViewMode: (mode: "grid" | "list") => void;
 
   resetError: () => void;
 }
@@ -43,6 +51,8 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   appStatus: "loading",
   vault: null,
   error: null,
+  servicesViewMode: "grid",
+  accountsViewMode: "grid",
 
   checkInitialStatus: async () => {
     try {
@@ -52,6 +62,9 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
       set({ appStatus: "error", error: e.message || "Failed to initialize" });
     }
   },
+
+  setServicesViewMode: (mode) => set({ servicesViewMode: mode }),
+  setAccountsViewMode: (mode) => set({ accountsViewMode: mode }),
 
   unlock: async (password: string) => {
     set({ appStatus: "loading", error: null });
@@ -190,6 +203,19 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
       vault: {
         ...vault,
         services: vault.services.filter(s => s.id !== serviceId),
+      },
+    });
+  },
+
+  deleteServices: async (serviceIds: string[]) => {
+    const { vault } = get();
+    if (!vault) return;
+
+    await vaultApi.deleteServices(serviceIds);
+    set({
+      vault: {
+        ...vault,
+        services: vault.services.filter(s => !serviceIds.includes(s.id)),
       },
     });
   },

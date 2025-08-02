@@ -205,6 +205,31 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* About */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-purple-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            <CardTitle className="text-white">{t('settings.about.title', 'About AccMan')}</CardTitle>
+          </div>
+          <CardDescription className="text-gray-400">{t('settings.about.description', 'Information about the application')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-gray-400">
+              {t('settings.about.developer', 'Developer')}: 
+              <a href="https://github.com/romirom11" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">@romirom11</a>
+            </p>
+            <p className="text-sm text-gray-400">
+              {t('settings.about.repository', 'Repository')}: 
+              <a href="https://github.com/romirom11/AccMan" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">github.com/romirom11/AccMan</a>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

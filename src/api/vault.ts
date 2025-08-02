@@ -72,6 +72,9 @@ export const vaultApi = {
   deleteService: (serviceId: string) =>
     callApi<void>('delete_service', { serviceId }, 'api.success.service_deleted'),
 
+  deleteServices: (serviceIds: string[]) =>
+    callApi<void>('delete_services', { serviceIds }, 'api.success.services_deleted'),
+
   // Accounts
   addAccount: (account: Account) =>
     callApi<void>('add_account', { account }, 'api.success.account_added'),

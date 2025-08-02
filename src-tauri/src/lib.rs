@@ -59,6 +59,7 @@ pub fn run() {
             commands::add_services,
             commands::update_service,
             commands::delete_service,
+            commands::delete_services,
             // Account
             commands::add_account,
             commands::update_account,

@@ -2,9 +2,9 @@ import { create } from "zustand";
 import { toast } from "sonner";
 import i18n from "@/i18n";
 import { vaultApi } from "@/api/vault";
-import type { Vault, ServiceType, Service, Account, Settings } from "@/types";
+import type { Vault, ServiceType, Service, Account, Settings, BulkCreateRequest } from "@/types";
 
-export type { Vault, Service, ServiceType, ServiceField, Account, Settings } from "@/types";
+export type { Vault, Service, ServiceType, ServiceField, Account, Settings, BulkCreateRequest } from "@/types";
 
 type AppStatus = "loading" | "needs_setup" | "locked" | "unlocked" | "error";
 
@@ -40,6 +40,7 @@ interface VaultStore {
   updateAccount: (account: Account) => Promise<void>;
   deleteAccount: (accountId: string) => Promise<void>;
   linkServicesToAccount: (accountId: string, serviceIds: string[]) => Promise<void>;
+  bulkCreateAccounts: (request: BulkCreateRequest) => Promise<void>;
 
   setServicesViewMode: (mode: "grid" | "table") => void;
   setAccountsViewMode: (mode: "grid" | "list") => void;
@@ -277,6 +278,19 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
             })
         }
     })
+  },
+
+  bulkCreateAccounts: async (request: BulkCreateRequest) => {
+    try {
+      await vaultApi.bulkCreateAccounts(request);
+      // Refresh vault data to get the newly created accounts
+      const updatedVault = await vaultApi.getVault();
+      set({ vault: updatedVault });
+      toast.success(i18n.t('api.success.bulk_accounts_created'));
+    } catch (e: any) {
+      console.error('Failed to bulk create accounts:', e);
+      throw e;
+    }
   },
 
   resetError: () => {

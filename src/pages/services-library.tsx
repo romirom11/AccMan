@@ -25,8 +25,12 @@ export default function ServicesLibrary() {
   const { vault, deleteService, deleteServices, servicesViewMode, setServicesViewMode } = useVaultStore()
   const viewMode = servicesViewMode;
   const setViewMode = setServicesViewMode;
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedType, setSelectedType] = useState<string>("all")
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return localStorage.getItem('services-search-query') || ''
+  })
+  const [selectedType, setSelectedType] = useState<string>(() => {
+    return localStorage.getItem('services-selected-type') || 'all'
+  })
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
@@ -50,6 +54,16 @@ export default function ServicesLibrary() {
       navigate(location.pathname, { replace: true });
     }
   }, [location.state, services, navigate, location.pathname])
+
+  // Save search query to localStorage
+  useEffect(() => {
+    localStorage.setItem('services-search-query', searchQuery)
+  }, [searchQuery])
+
+  // Save selected type to localStorage
+  useEffect(() => {
+    localStorage.setItem('services-selected-type', selectedType)
+  }, [selectedType])
 
   const fuse = useMemo(() => new Fuse(services, {
     keys: ['label', 'tags'],

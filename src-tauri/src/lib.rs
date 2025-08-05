@@ -49,6 +49,7 @@ pub fn run() {
             commands::create_vault,
             commands::unlock_vault,
             commands::lock_vault,
+            commands::get_vault,
             // Settings
             commands::update_settings,
             commands::change_master_password,
@@ -66,7 +67,8 @@ pub fn run() {
             commands::add_account,
             commands::update_account,
             commands::delete_account,
-            commands::link_services_to_account
+            commands::link_services_to_account,
+            commands::bulk_create_accounts
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

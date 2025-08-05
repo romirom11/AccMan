@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import Fuse from "fuse.js"
@@ -11,6 +11,7 @@ import { Plus, Search, Filter, Edit, Trash2, Grid, List, Users } from "lucide-re
 import { useVaultStore } from "@/stores/vault-store"
 import type { Account } from "@/types"
 import { CreateAccountModal } from "@/components/create-account-modal"
+import { BulkCreateAccountsModal } from "@/components/bulk-create-accounts-modal"
 import { confirm } from "@tauri-apps/plugin-dialog"
 
 export default function AccountsList() {
@@ -19,15 +20,30 @@ export default function AccountsList() {
   const { vault, deleteAccount, accountsViewMode, setAccountsViewMode } = useVaultStore()
   const viewMode = accountsViewMode;
   const setViewMode = setAccountsViewMode;
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedTag, setSelectedTag] = useState("all")
+  const [searchTerm, setSearchTerm] = useState(() => {
+    return localStorage.getItem('accounts-search-term') || ''
+  })
+  const [selectedTag, setSelectedTag] = useState(() => {
+    return localStorage.getItem('accounts-selected-tag') || 'all'
+  })
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false)
   const [accountToEdit, setAccountToEdit] = useState<Account | null>(null)
 
 
   const accounts = vault?.accounts || []
   
   const allTags = ["all", ...Array.from(new Set(accounts.flatMap((account) => account.tags)))]
+
+  // Save search term to localStorage
+  useEffect(() => {
+    localStorage.setItem('accounts-search-term', searchTerm)
+  }, [searchTerm])
+
+  // Save selected tag to localStorage
+  useEffect(() => {
+    localStorage.setItem('accounts-selected-tag', selectedTag)
+  }, [selectedTag])
 
   const fuse = useMemo(() => new Fuse(accounts, {
     keys: ['label', 'notes', 'tags'],
@@ -79,13 +95,23 @@ export default function AccountsList() {
           <h1 className="text-3xl font-bold text-white">{t('accounts.title')}</h1>
           <p className="text-gray-400 mt-1">{t('accounts.description')}</p>
         </div>
-        <Button
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-          onClick={handleAddAccount}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          {t('accounts.create_button')}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            onClick={handleAddAccount}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {t('accounts.create_button')}
+          </Button>
+          <Button
+            variant="outline"
+            className="border-blue-600 text-blue-400 hover:bg-blue-600/10"
+            onClick={() => setIsBulkModalOpen(true)}
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Bulk Create
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -218,6 +244,10 @@ export default function AccountsList() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         accountToEdit={accountToEdit}
+      />
+      <BulkCreateAccountsModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
       />
     </div>
   )

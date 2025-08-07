@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
-import type { Vault, ServiceType, Service, Account, Settings } from '@/types';
+import type { Vault, ServiceType, Service, Account, Settings, BulkCreateRequest } from '@/types';
 import i18n from '@/i18n';
 
 /**
@@ -87,4 +87,11 @@ export const vaultApi = {
     
   linkServicesToAccount: (accountId: string, serviceIds: string[]) =>
     callApi<void>('link_services_to_account', { accountId, serviceIds }, 'api.success.services_linked'),
+
+  bulkCreateAccounts: (request: BulkCreateRequest) =>
+    callApi<void>('bulk_create_accounts', { request: request as unknown as Record<string, unknown> }, 'api.success.bulk_accounts_created'),
+
+  // Get current vault state
+  getVault: () =>
+    callApi<Vault>('get_vault'),
 };

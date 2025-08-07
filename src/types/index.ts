@@ -42,3 +42,24 @@ export interface Vault {
   accounts: Account[]
   settings: Settings;
 }
+
+export interface BulkAccountConfig {
+  count: number
+  nameTemplate: string
+  startNumber: number
+  tags: string[]
+  notes: string
+}
+
+export interface ServiceLinkConfig {
+  serviceTypeId: string
+  nameTemplate: string
+  data: Record<string, string>
+  tags: string[]
+}
+
+export interface BulkCreateRequest {
+  accountConfig: BulkAccountConfig
+  linkServices: boolean
+  serviceConfigs: ServiceLinkConfig[]
+}

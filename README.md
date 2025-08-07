@@ -58,9 +58,15 @@ Download the latest version from the [Releases](https://github.com/romirom11/Acc
 3. Launch AccMan from the Start Menu
 
 #### macOS
-1. Download the `.dmg` file
-2. Open the DMG and drag AccMan to Applications
-3. Launch AccMan from Applications (you may need to allow it in Security & Privacy settings)
+1. Download the `.dmg` or `.app.tar.gz` file.
+2. If you downloaded the `.dmg`, open it and drag `AccMan.app` to your Applications folder.
+3. If you downloaded `.app.tar.gz`, unpack it.
+4. Before launching the app for the first time, you may need to remove the quarantine attribute set by macOS. Open your terminal and run:
+   ```bash
+   xattr -d com.apple.quarantine /path/to/your/AccMan.app
+   ```
+   *Tip: You can drag the `AccMan.app` file into the terminal window to automatically insert the correct path.*
+5. Launch AccMan. You may need to grant it permission to run in `System Settings > Privacy & Security`.
 
 #### Linux
 1. Download the `.AppImage` file
@@ -97,15 +103,18 @@ Download the latest version from the [Releases](https://github.com/romirom11/Acc
    pnpm tauri dev
    ```
 
-### Build
+### Build from Source
 
-```bash
-# Build for production
-pnpm build
+If you prefer to build the application yourself, follow these steps:
 
-# Build Tauri app
-pnpm tauri build
-```
+1.  **Clone and set up the project** as described in the [Setup](#setup) section.
+2.  **Build the application** with a single command:
+
+    ```bash
+    pnpm tauri build
+    ```
+
+This will create a production-ready executable file in the `src-tauri/target/release/` directory.
 
 ## 🏗️ Project Structure
 

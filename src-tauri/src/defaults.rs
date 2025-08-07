@@ -31,7 +31,7 @@ pub fn get_default_service_types() -> Vec<ServiceType> {
         },
         // --- Twitter ---
         ServiceType {
-            id: "twitter-x".to_string(),
+            id: "twitter_x".to_string(),
             name: "Twitter (X)".to_string(),
             icon: "Twitter".to_string(),
             fields: vec![

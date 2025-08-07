@@ -1,6 +1,6 @@
 [package]
 name = "AccMan"
-version = "0.1.1"
+version = "0.1.2"
 description = "Easy management for multi-accounting"
 authors = ["romirom11"]
 license = ""
@@ -32,3 +32,4 @@ thiserror = "1.0"
 lazy_static = "1.4.0"
 tauri-plugin-dialog = "2"
 tauri-plugin-updater = "2"
+uuid = { version = "1.0", features = ["v4"] }

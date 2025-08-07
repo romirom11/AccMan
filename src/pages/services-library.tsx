@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useNavigate, useLocation } from "react-router-dom";
-import { Plus, Search, Filter, Grid, List, Edit, Trash2, Link, Upload, Import, MousePointer, CheckSquare } from "lucide-react"
+import { Plus, Search, Filter, Grid, List, Edit, Trash2, Link, Upload, Import, MousePointer, CheckSquare, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { useVaultStore } from "../stores/vault-store";
 import { toast } from "sonner";
 import type { Service } from "../types"
@@ -25,13 +25,23 @@ export default function ServicesLibrary() {
   const { vault, deleteService, deleteServices, servicesViewMode, setServicesViewMode } = useVaultStore()
   const viewMode = servicesViewMode;
   const setViewMode = setServicesViewMode;
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedType, setSelectedType] = useState<string>("all")
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return localStorage.getItem('services-search-query') || ''
+  })
+  const [selectedType, setSelectedType] = useState<string>(() => {
+    return localStorage.getItem('services-selected-type') || 'all'
+  })
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null)
   const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'none'>(() => {
+    return (localStorage.getItem('services-sort-order') as 'asc' | 'desc' | 'none') || 'asc'
+  })
+  const [sortBy, setSortBy] = useState<'name' | 'type'>(() => {
+    return (localStorage.getItem('services-sort-by') as 'name' | 'type') || 'name'
+  })
 
 
   const services = vault?.services || []
@@ -51,6 +61,49 @@ export default function ServicesLibrary() {
     }
   }, [location.state, services, navigate, location.pathname])
 
+  // Save search query to localStorage
+  useEffect(() => {
+    localStorage.setItem('services-search-query', searchQuery)
+  }, [searchQuery])
+
+  // Save selected type to localStorage
+  useEffect(() => {
+    localStorage.setItem('services-selected-type', selectedType)
+  }, [selectedType])
+
+  // Save sort order to localStorage
+  useEffect(() => {
+    localStorage.setItem('services-sort-order', sortOrder)
+  }, [sortOrder])
+
+  // Save sort by to localStorage
+  useEffect(() => {
+    localStorage.setItem('services-sort-by', sortBy)
+  }, [sortBy])
+
+  // Natural sort function for handling numbers in strings
+  const naturalSort = (a: string, b: string) => {
+    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+  }
+
+  const handleSortToggle = () => {
+    if (sortOrder === 'none') {
+      setSortOrder('asc')
+    } else if (sortOrder === 'asc') {
+      setSortOrder('desc')
+    } else {
+      setSortOrder('none')
+    }
+  }
+
+  const handleSortByChange = (newSortBy: 'name' | 'type') => {
+    setSortBy(newSortBy)
+  }
+
+  const getServiceType = (serviceTypeId: string) => {
+    return serviceTypes.find((type) => type.id === serviceTypeId)
+  }
+
   const fuse = useMemo(() => new Fuse(services, {
     keys: ['label', 'tags'],
     threshold: 0.3,
@@ -68,13 +121,25 @@ export default function ServicesLibrary() {
         results = results.filter(service => service.serviceTypeId === selectedType);
     }
 
-    return results;
-  }, [services, searchQuery, selectedType, fuse]);
-  
+    // Apply sorting
+    if (sortOrder !== 'none') {
+      results = [...results].sort((a, b) => {
+        let comparison = 0;
+        
+        if (sortBy === 'name') {
+          comparison = naturalSort(a.label, b.label);
+        } else if (sortBy === 'type') {
+          const typeA = getServiceType(a.serviceTypeId)?.name || '';
+          const typeB = getServiceType(b.serviceTypeId)?.name || '';
+          comparison = naturalSort(typeA, typeB);
+        }
+        
+        return sortOrder === 'asc' ? comparison : -comparison;
+      });
+    }
 
-  const getServiceType = (serviceTypeId: string) => {
-    return serviceTypes.find((type) => type.id === serviceTypeId)
-  }
+    return results;
+  }, [services, searchQuery, selectedType, fuse, sortOrder, sortBy, serviceTypes]);
 
   const toggleServiceSelection = (serviceId: string) => {
     setSelectedServices((prev) =>
@@ -190,6 +255,36 @@ export default function ServicesLibrary() {
               >
                 {isSelectionMode ? <CheckSquare className="w-4 h-4" /> : <MousePointer className="w-4 h-4" />}
               </Button>
+              <div className="w-px h-6 bg-gray-600" />
+              
+              {/* Sort by selector */}
+              <Select value={sortBy} onValueChange={handleSortByChange}>
+                <SelectTrigger className="w-32 bg-gray-700 border-gray-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-700 border-gray-600">
+                  <SelectItem value="name">{t('services.sort.by_name', 'По імені')}</SelectItem>
+                  <SelectItem value="type">{t('services.sort.by_type', 'По типу')}</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Sort order button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSortToggle}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                title={
+                  sortOrder === 'none' ? t('services.sort.no_sort', 'Без сортування') :
+                  sortOrder === 'asc' ? t('services.sort.ascending', 'За зростанням') :
+                  t('services.sort.descending', 'За спаданням')
+                }
+              >
+                {sortOrder === 'none' && <ArrowUpDown className="w-4 h-4" />}
+                {sortOrder === 'asc' && <ArrowUp className="w-4 h-4" />}
+                {sortOrder === 'desc' && <ArrowDown className="w-4 h-4" />}
+              </Button>
+              
               <div className="w-px h-6 bg-gray-600" />
               <Button
                 variant={viewMode === "grid" ? "default" : "outline"}

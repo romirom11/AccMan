@@ -7,6 +7,7 @@ use crate::StoragePath;
 use crate::defaults; // Import the defaults module
 use std::sync::Mutex;
 use tauri::State;
+use uuid;
 
 // --- State Management ---
 
@@ -159,6 +160,15 @@ pub fn lock_vault(
     *session_pass = None; // This will trigger ZeroizeOnDrop for MasterPassword
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_vault(app_state: State<AppState>) -> Result<Vault, CommandError> {
+    let vault_guard = app_state.0.lock().unwrap();
+    match vault_guard.as_ref() {
+        Some(vault) => Ok(vault.clone()),
+        None => Err(CommandError::VaultLocked),
+    }
 }
 
 // --- Settings Commands ---
@@ -485,5 +495,103 @@ pub fn change_master_password(
 
     *password_guard = Some(new_master_password);
 
+    Ok(())
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct BulkAccountConfig {
+    pub count: u32,
+    #[serde(rename = "nameTemplate")]
+    pub name_template: String,
+    #[serde(rename = "startNumber")]
+    pub start_number: u32,
+    pub tags: Vec<String>,
+    pub notes: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct ServiceLinkConfig {
+    #[serde(rename = "serviceTypeId")]
+    pub service_type_id: String,
+    #[serde(rename = "nameTemplate")]
+    pub name_template: String,
+    pub data: std::collections::HashMap<String, String>,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct BulkCreateRequest {
+    #[serde(rename = "accountConfig")]
+    pub account_config: BulkAccountConfig,
+    #[serde(rename = "linkServices")]
+    pub link_services: bool,
+    #[serde(rename = "serviceConfigs")]
+    pub service_configs: Vec<ServiceLinkConfig>,
+}
+
+#[tauri::command]
+pub fn bulk_create_accounts(
+    path: State<StoragePath>,
+    request: BulkCreateRequest,
+    app_state: State<AppState>,
+    session_state: State<SessionState>,
+) -> Result<(), CommandError> {
+    let mut vault_guard = app_state.0.lock().unwrap();
+    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
+
+    let mut created_accounts = Vec::new();
+
+    // Create accounts
+    for i in 0..request.account_config.count {
+        let account_number = request.account_config.start_number + i;
+        let account_name = request.account_config.name_template.replace("%n%", &account_number.to_string());
+        
+        let account = Account {
+            id: uuid::Uuid::new_v4().to_string(),
+            label: account_name,
+            notes: request.account_config.notes.clone(),
+            tags: request.account_config.tags.clone(),
+            linked_services: Vec::new(),
+        };
+        
+        created_accounts.push(account.clone());
+        vault.accounts.push(account);
+    }
+
+    // Link existing services if requested
+    if request.link_services {
+        for account in &mut created_accounts {
+            let account_number = account.label
+                .chars()
+                .filter(|c| c.is_ascii_digit())
+                .collect::<String>()
+                .parse::<u32>()
+                .unwrap_or(1);
+
+            for service_config in &request.service_configs {
+                // Check if service type exists
+                if !vault.service_types.iter().any(|st| st.id == service_config.service_type_id) {
+                    continue; // Skip if service type doesn't exist
+                }
+
+                let service_name = service_config.name_template.replace("%n%", &account_number.to_string());
+                
+                // Search for existing service by name and service type
+                if let Some(existing_service) = vault.services.iter().find(|s| 
+                    s.label == service_name && s.service_type_id == service_config.service_type_id
+                ) {
+                    // Link existing service to account
+                    if let Some(vault_account) = vault.accounts.iter_mut().find(|a| a.id == account.id) {
+                        if !vault_account.linked_services.contains(&existing_service.id) {
+                            vault_account.linked_services.push(existing_service.id.clone());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    drop(vault_guard);
+    save_vault_with_session_password(&path, &app_state, &session_state)?;
     Ok(())
 }

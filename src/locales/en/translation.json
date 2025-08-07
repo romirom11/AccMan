@@ -3,7 +3,9 @@
     "edit": "Edit",
     "delete": "Delete",
     "save": "Save",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "create": "Create",
+    "creating": "Creating..."
   },
   "lock_screen": {
     "title": "Unlock Vault",
@@ -321,6 +323,39 @@
       "errors": {
         "no_services": "No services selected to link."
       }
+    },
+    "bulk_create_accounts": {
+      "title": "Bulk Create Accounts",
+      "description": "Create multiple accounts at once with optional service linking.",
+      "account_config": {
+        "title": "Account Configuration",
+        "count": "Number of Accounts",
+        "name_template": "Name Template",
+        "name_template_help": "Use %n% as placeholder for account number (e.g., Work%n% → Work1, Work2, ...)",
+        "start_number": "Starting Number",
+        "tags": "Tags (comma-separated)",
+        "tags_placeholder": "work, bulk, automation",
+        "notes": "Notes",
+        "notes_placeholder": "Additional information for all accounts..."
+      },
+      "service_linking": {
+        "title": "Link to Existing Services",
+        "service": "Service",
+        "service_type": "Service Type",
+        "select_service_type": "Select service type...",
+        "name_template": "Service Name Template",
+        "name_template_help": "Use %n% as placeholder for account number (e.g., TwWork%n% → TwWork1, TwWork2, ...)",
+        "tags": "Service Tags (comma-separated)",
+        "tags_placeholder": "bulk, auto-generated",
+        "add_service": "Add Service Configuration"
+      },
+      "errors": {
+        "name_template_required": "Account name template is required.",
+        "invalid_count": "Number of accounts must be between 1 and 100.",
+        "no_service_configs": "Please add at least one service configuration or disable service linking.",
+        "service_type_required": "Service type is required for each service configuration.",
+        "service_name_template_required": "Service name template is required for each service configuration."
+      }
     }
   },
   "service_view": {
@@ -355,7 +390,8 @@
       "account_updated": "Account successfully updated",
       "account_deleted": "Account successfully deleted",
       "services_linked": "Services successfully linked",
-      "services_deleted": "Services successfully deleted"
+      "services_deleted": "Services successfully deleted",
+      "bulk_accounts_created": "Accounts successfully created in bulk"
     },
     "error": {
       "prefix": "Error"

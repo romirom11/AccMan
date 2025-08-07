@@ -367,6 +367,9 @@
     "data": {
       "title": "Service Data"
     },
+    "linked_services": {
+      "title": "Services Using This Service"
+    },
     "linked_accounts": {
       "title": "Linked Accounts"
     }

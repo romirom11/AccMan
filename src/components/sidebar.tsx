@@ -127,7 +127,7 @@ export default function Sidebar() {
                   {searchResults.accounts.map((account) => (
                     <Link
                       key={account.id}
-                      to={`/account/${account.id}`}
+                      to={`/accounts/${account.id}`}
                       className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
                       onClick={() => setSearchQuery("")}
                     >
@@ -157,7 +157,7 @@ export default function Sidebar() {
                     return (
                       <Link
                          key={service.id}
-                         to={`/service/${service.id}`}
+                         to={`/services/${service.id}`}
                          className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
                          onClick={() => setSearchQuery("")}
                        >

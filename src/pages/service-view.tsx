@@ -254,6 +254,51 @@ export default function ServiceView() {
         </CardContent>
       </Card>
 
+      {/* Linked Services */}
+      {(() => {
+        const linkedServices = allServices.filter(srv => {
+          if (srv.id === service.id) return false;
+          return Object.values(srv.data).some(value => value === service.id);
+        });
+        
+        return linkedServices.length > 0 && (
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white">{t('service_view.linked_services.title')}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {linkedServices.map((linkedService) => {
+                const linkedServiceType = vault?.serviceTypes.find(type => type.id === linkedService.serviceTypeId);
+                return (
+                  <div
+                    key={linkedService.id}
+                    className="flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-650 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/services/${linkedService.id}`)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                        <span className="text-white font-bold">{linkedServiceType?.name.charAt(0) || 'S'}</span>
+                      </div>
+                      <div>
+                        <h3 className="text-white font-medium">{linkedService.label}</h3>
+                        <p className="text-gray-400 text-sm">{linkedServiceType?.name}</p>
+                        <div className="flex gap-1 mt-1">
+                          {linkedService.tags.slice(0, 2).map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* Linked Accounts */}
       {vault?.accounts.some(account => account.linkedServices.includes(service.id)) && (
         <Card className="bg-gray-800 border-gray-700">

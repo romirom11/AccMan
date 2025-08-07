@@ -82,9 +82,9 @@ function App() {
                             <Route element={<MainLayout />}>
                                 <Route path="/" element={<Dashboard />} />
                                 <Route path="/accounts" element={<Accounts />} />
-                                <Route path="/account/:id" element={<AccountView />} />
+                                <Route path="/accounts/:id" element={<AccountView />} />
                                 <Route path="/services" element={<ServicesLibrary />} />
-                                <Route path="/service/:id" element={<ServiceView />} />
+                                <Route path="/services/:id" element={<ServiceView />} />
                                 <Route path="/services-import" element={<ServicesImport />} />
                                 <Route path="/service-types" element={<ServiceTypeConstructor />} />
                                 <Route path="/settings" element={<Settings />} />

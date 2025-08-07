@@ -151,7 +151,7 @@ export default function ServicesLibrary() {
     if (isSelectionMode) {
       toggleServiceSelection(serviceId)
     } else {
-      navigate(`/service/${serviceId}`)
+      navigate(`/services/${serviceId}`)
     }
   }
   

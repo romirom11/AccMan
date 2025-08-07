@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Filter, Edit, Trash2, Grid, List, Users } from "lucide-react"
+import { Plus, Search, Filter, Edit, Trash2, Grid, List, Users, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { useVaultStore } from "@/stores/vault-store"
 import type { Account } from "@/types"
 import { CreateAccountModal } from "@/components/create-account-modal"
@@ -25,6 +25,9 @@ export default function AccountsList() {
   })
   const [selectedTag, setSelectedTag] = useState(() => {
     return localStorage.getItem('accounts-selected-tag') || 'all'
+  })
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'none'>(() => {
+    return (localStorage.getItem('accounts-sort-order') as 'asc' | 'desc' | 'none') || 'asc'
   })
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false)
@@ -45,6 +48,30 @@ export default function AccountsList() {
     localStorage.setItem('accounts-selected-tag', selectedTag)
   }, [selectedTag])
 
+  // Save sort order to localStorage
+  useEffect(() => {
+    localStorage.setItem('accounts-sort-order', sortOrder)
+  }, [sortOrder])
+
+  // Natural sort function that handles numbers correctly
+  const naturalSort = (a: string, b: string): number => {
+    const collator = new Intl.Collator(undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    })
+    return collator.compare(a, b)
+  }
+
+  const handleSortToggle = () => {
+    if (sortOrder === 'none') {
+      setSortOrder('asc')
+    } else if (sortOrder === 'asc') {
+      setSortOrder('desc')
+    } else {
+      setSortOrder('none')
+    }
+  }
+
   const fuse = useMemo(() => new Fuse(accounts, {
     keys: ['label', 'notes', 'tags'],
     threshold: 0.3,
@@ -62,8 +89,16 @@ export default function AccountsList() {
         results = results.filter(account => account.tags.includes(selectedTag));
     }
 
+    // Apply sorting
+    if (sortOrder !== 'none') {
+      results = [...results].sort((a, b) => {
+        const comparison = naturalSort(a.label, b.label)
+        return sortOrder === 'asc' ? comparison : -comparison
+      })
+    }
+
     return results;
-  }, [accounts, searchTerm, selectedTag, fuse]);
+  }, [accounts, searchTerm, selectedTag, fuse, sortOrder]);
   
   const handleAddAccount = () => {
     setAccountToEdit(null)
@@ -143,6 +178,17 @@ export default function AccountsList() {
             </Select>
 
             <div className="flex gap-2">
+              <Button
+                variant={sortOrder !== 'none' ? "secondary" : "ghost"}
+                size="sm"
+                onClick={handleSortToggle}
+                className="text-gray-300"
+                title={sortOrder === 'none' ? 'Sort by name' : sortOrder === 'asc' ? 'Sorted A-Z' : 'Sorted Z-A'}
+              >
+                {sortOrder === 'none' && <ArrowUpDown className="w-4 h-4" />}
+                {sortOrder === 'asc' && <ArrowUp className="w-4 h-4" />}
+                {sortOrder === 'desc' && <ArrowDown className="w-4 h-4" />}
+              </Button>
               <Button
                 variant={viewMode === "grid" ? "secondary" : "ghost"}
                 size="sm"

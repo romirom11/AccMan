@@ -1,5 +1,6 @@
 import { check } from '@tauri-apps/plugin-updater';
 import { ask } from '@tauri-apps/plugin-dialog';
+import { relaunch } from '@tauri-apps/plugin-process';
 
 export function useUpdater() {
   const checkForUpdates = async () => {
@@ -13,7 +14,8 @@ export function useUpdater() {
         });
         if (wantsToUpdate) {
           await update.downloadAndInstall();
-          // The app will restart automatically after the update
+          // Explicitly restart the app after the update
+          await relaunch();
         }
       }
     } catch (error) {

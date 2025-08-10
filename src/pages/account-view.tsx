@@ -8,26 +8,32 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Edit, Trash2, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Link, Save, Unlink, ArrowLeft, KeyRound, RefreshCw } from "lucide-react"
+import { Edit, Trash2, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Link, Save, Unlink, ArrowLeft, KeyRound, RefreshCw, Plus } from "lucide-react"
 import { useVaultStore } from "../stores/vault-store"
 import { LinkNewServicesModal } from "@/components/link-new-services-modal"
 import { CreateAccountModal } from "@/components/create-account-modal"
+import { CreateServiceModal } from "@/components/create-service-modal"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { LinkedServiceDetail } from "@/components/linked-service-detail"
+import { toast } from "sonner"
 import * as OTPAuth from "otpauth";
 import { ServiceField } from "@/types"
+import type { Service } from "@/types"
 
 export default function AccountView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { t } = useTranslation();
-  const { vault, updateAccount, deleteAccount } = useVaultStore()
+  const { vault, updateAccount, deleteAccount, linkServicesToAccount } = useVaultStore()
   const [editingNotes, setEditingNotes] = useState(false)
   
   const account = vault?.accounts.find((acc) => acc.id === id)
   const [notes, setNotes] = useState(account?.notes || "")
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isCreateServiceModalOpen, setIsCreateServiceModalOpen] = useState(false)
+  const [isEditServiceModalOpen, setIsEditServiceModalOpen] = useState(false)
+  const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null)
   const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
   const [openServices, setOpenServices] = useState<Record<string, boolean>>({})
   const [generatedTokens, setGeneratedTokens] = useState<Record<string, string | null>>({})
@@ -73,6 +79,11 @@ export default function AccountView() {
         const updatedLinkedServices = account.linkedServices.filter(id => id !== serviceId);
         await updateAccount({ ...account, linkedServices: updatedLinkedServices });
     }
+  }
+
+  const handleEditService = (service: Service) => {
+    setServiceToEdit(service);
+    setIsEditServiceModalOpen(true);
   }
 
   const getServiceType = (serviceTypeId: string) => {
@@ -240,10 +251,20 @@ export default function AccountView() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-white">{t('account_view.services.title', { count: linkedServices.length })}</CardTitle>
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-700" onClick={() => setIsLinkModalOpen(true)}>
-              <Link className="w-4 h-4 mr-2" />
-              {t('account_view.services.link_button')}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                className="border-gray-600 text-gray-300 bg-transparent"
+                onClick={() => setIsCreateServiceModalOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {t('dashboard.quick_actions.create_service')}
+              </Button>
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-700" onClick={() => setIsLinkModalOpen(true)}>
+                <Link className="w-4 h-4 mr-2" />
+                {t('account_view.services.link_button')}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -268,6 +289,9 @@ export default function AccountView() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
+                            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-blue-400" onClick={(e) => { e.stopPropagation(); handleEditService(service); }}>
+                                <Edit className="w-4 h-4" />
+                            </Button>
                             <Button size="sm" variant="ghost" className="text-gray-400 hover:text-red-400" onClick={(e) => { e.stopPropagation(); handleUnlinkService(service.id); }}>
                                 <Unlink className="w-4 h-4" />
                             </Button>
@@ -374,6 +398,26 @@ export default function AccountView() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         accountToEdit={account}
+      />
+      <CreateServiceModal
+        isOpen={isCreateServiceModalOpen}
+        onClose={() => setIsCreateServiceModalOpen(false)}
+        accountId={account?.id}
+        onSaved={() => {
+          // Service is automatically linked via account_id parameter
+          toast.success(t('modals.link_new.service_created_and_linked'))
+        }}
+      />
+      <CreateServiceModal
+        isOpen={isEditServiceModalOpen}
+        onClose={() => {
+          setIsEditServiceModalOpen(false);
+          setServiceToEdit(null);
+        }}
+        serviceToEdit={serviceToEdit}
+        onSaved={() => {
+          toast.success(t('common.saved'));
+        }}
       />
     </div>
   )

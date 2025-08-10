@@ -2,6 +2,7 @@
   "common": {
     "edit": "Edit",
     "delete": "Delete",
+    "link_to_account": "Link to account",
     "save": "Save",
     "cancel": "Cancel",
     "create": "Create",
@@ -298,6 +299,15 @@
       "tags": "Tags (comma-separated)",
       "tags_placeholder": "work, personal",
       "2fa_placeholder": "Enter 2FA secret key",
+      "create_new_service": "Create new",
+      "cancel_creation": "Cancel",
+      "creating_new_service": "Creating new {{serviceName}}",
+      "service_name_label": "Service name",
+      "service_name_placeholder": "Enter service name",
+      "tags_comma_separated": "Tags (comma-separated)",
+      "service_name": "Service name",
+      "search_services_placeholder": "Search services...",
+      "no_services_found": "No services found.",
       "errors": {
         "label_type_required": "Service label and type are required."
       }
@@ -314,15 +324,34 @@
         "no_services": "No services selected to link."
       }
     },
-    "link_new": {
-      "title": "Link New Services",
-      "description": "Select the services you want to add to this account.",
-      "search_placeholder": "Search services...",
-      "no_services_found": "No available services found.",
-      "link_button": "Link ({{count}})",
+    "link_service_to_account": {
+      "title": "Link Service to Account",
+      "description": "Select an account to link the service {{serviceName}} to.",
+      "account_label": "Account",
+      "account_placeholder": "Select an account...",
+      "search_placeholder": "Search accounts...",
+      "link_button": "Link",
+      "success": "Service successfully linked to account!",
+      "no_accounts_found": "No accounts found.",
+      "no_available_accounts": "No available accounts to link to.",
       "errors": {
-        "no_services": "No services selected to link."
+        "account_required": "Please select an account.",
+        "link_failed": "Error linking service to account."
       }
+    },
+    "link_new": {
+      "title": "Link A Service",
+      "description": "Select services to link to this account.",
+      "search_placeholder": "Search by label or tag...",
+      "filter_by_type": "Filter by service type",
+      "all_types": "All Types",
+      "create_and_link_button": "Create & Link Service",
+      "no_services_found": "No services found for current filters.",
+      "link_button": "Link {{count}}",
+      "errors": {
+        "no_services": "Please select at least one service to link."
+      },
+      "service_created_and_linked": "Service created and linked"
     },
     "bulk_create_accounts": {
       "title": "Bulk Create Accounts",

@@ -6,13 +6,14 @@ import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2, Eye, EyeOff, Copy, Globe, ArrowLeft, KeyRound, RefreshCw } from "lucide-react"
+import { Edit, Trash2, Eye, EyeOff, Copy, Globe, ArrowLeft, KeyRound, RefreshCw, Link } from "lucide-react"
 import { useVaultStore } from "../stores/vault-store"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import * as OTPAuth from "otpauth";
 import { ServiceField } from "@/types"
 import { CreateServiceModal } from "@/components/create-service-modal"
 import { LinkedServiceDetail } from "@/components/linked-service-detail"
+import { LinkServiceToAccountModal } from "@/components/link-service-to-account-modal"
 
 export default function ServiceView() {
   const { id } = useParams<{ id: string }>()
@@ -21,6 +22,7 @@ export default function ServiceView() {
   const { vault, deleteService } = useVaultStore()
   const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isLinkToAccountModalOpen, setIsLinkToAccountModalOpen] = useState(false)
   const [generatedTokens, setGeneratedTokens] = useState<Record<string, string | null>>({})
   const [expandedLinkedServices, setExpandedLinkedServices] = useState<Record<string, boolean>>({})
   
@@ -52,6 +54,10 @@ export default function ServiceView() {
 
   const handleEditService = () => {
     setIsEditModalOpen(true);
+  }
+
+  const handleLinkToAccount = () => {
+    setIsLinkToAccountModalOpen(true);
   }
 
   const toggleSecretVisibility = (fieldKey: string) => {
@@ -160,6 +166,14 @@ export default function ServiceView() {
               </div>
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white bg-transparent"
+                onClick={handleLinkToAccount}
+              >
+                <Link className="w-4 h-4 mr-2" />
+                {t('common.link_to_account')}
+              </Button>
               <Button 
                 variant="outline" 
                 className="border-gray-600 text-gray-300 bg-transparent"
@@ -340,6 +354,12 @@ export default function ServiceView() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         serviceToEdit={service}
+      />
+
+      <LinkServiceToAccountModal 
+        isOpen={isLinkToAccountModalOpen}
+        onClose={() => setIsLinkToAccountModalOpen(false)}
+        serviceId={service.id}
       />
     </div>
   )

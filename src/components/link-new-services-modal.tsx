@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useVaultStore } from "../stores/vault-store";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,14 +24,20 @@ export function LinkNewServicesModal({ isOpen, onClose, accountId }: LinkNewServ
   const { vault, linkServicesToAccount } = useVaultStore();
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("all");
+  // const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const account = vault?.accounts.find(acc => acc.id === accountId);
   const unlinkedServices = vault?.services.filter(service => !account?.linkedServices.includes(service.id)) || [];
+  const serviceTypes = vault?.serviceTypes || [];
 
-  const filteredServices = unlinkedServices.filter(service => 
-    service.label.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    service.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredServices = unlinkedServices.filter(service => {
+    const matchesSearch =
+      service.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      service.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesType = selectedTypeFilter === "all" || service.serviceTypeId === selectedTypeFilter;
+    return matchesSearch && matchesType;
+  });
 
   const toggleSelection = (serviceId: string) => {
     setSelectedServiceIds(prev => prev.includes(serviceId) ? prev.filter(id => id !== serviceId) : [...prev, serviceId]);
@@ -50,11 +57,19 @@ export function LinkNewServicesModal({ isOpen, onClose, accountId }: LinkNewServ
     }
   };
 
-  // Reset state on close
+  // const handleServiceCreated = async (newService: any) => {
+  //   try {
+  //     await linkServicesToAccount(accountId, [newService.id]);
+  //     toast.success(t('modals.link_new.service_created_and_linked'));
+  //     setIsCreateModalOpen(false);
+  //   } catch (e) {}
+  // };
+
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       setSelectedServiceIds([]);
       setSearchTerm("");
+      setSelectedTypeFilter("all");
       onClose();
     }
   }
@@ -69,14 +84,29 @@ export function LinkNewServicesModal({ isOpen, onClose, accountId }: LinkNewServ
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input 
-              placeholder={t('modals.link_new.search_placeholder')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-700 border-gray-600"
-            />
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input 
+                placeholder={t('modals.link_new.search_placeholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-gray-700 border-gray-600"
+              />
+            </div>
+            <Select value={selectedTypeFilter} onValueChange={setSelectedTypeFilter}>
+              <SelectTrigger className="w-56 bg-gray-700 border-gray-600 text-white">
+                <SelectValue placeholder={t('modals.link_new.filter_by_type')} />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-700 border-gray-600">
+                <SelectItem value="all">{t('modals.link_new.all_types')}</SelectItem>
+                {serviceTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id}>
+                    {type.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <ScrollArea className="h-72 pr-6">
             <div className="space-y-3">
@@ -112,6 +142,7 @@ export function LinkNewServicesModal({ isOpen, onClose, accountId }: LinkNewServ
           </Button>
         </DialogFooter>
       </DialogContent>
+      {/** Removed CreateServiceModal from here per new UX **/}
     </Dialog>
   );
 }

@@ -2,6 +2,7 @@
   "common": {
     "edit": "Редагувати",
     "delete": "Видалити",
+    "link_to_account": "Прив'язати до акаунту",
     "save": "Зберегти",
     "cancel": "Скасувати",
     "create": "Створити",
@@ -305,6 +306,15 @@
       "tags": "Теги (через кому)",
       "tags_placeholder": "робота, особисте",
       "2fa_placeholder": "Введіть секретний ключ 2FA",
+      "create_new_service": "Створити новий",
+      "cancel_creation": "Скасувати",
+      "creating_new_service": "Створення нового {{serviceName}}",
+      "service_name_label": "Назва сервісу",
+      "service_name_placeholder": "Введіть назву сервісу",
+      "tags_comma_separated": "Теги через кому",
+      "service_name": "Назва сервісу",
+      "search_services_placeholder": "Пошук сервісів...",
+      "no_services_found": "Сервіси не знайдено.",
       "errors": {
         "label_type_required": "Назва та тип сервісу є обов'язковими."
       }
@@ -318,19 +328,38 @@
       "account_placeholder": "Виберіть акаунт...",
       "link_button": "Прив'язати",
       "errors": {
-        "account_required": "Будь ласка, виберіть акаунт.",
-        "no_services": "Не вибрано жодного сервісу для прив'язки."
+        "account_required": "Будь ласка, оберіть акаунт.",
+        "no_services": "Не вибрано сервісів для прив'язки."
+      }
+    },
+    "link_service_to_account": {
+      "title": "Прив'язати сервіс до акаунту",
+      "description": "Оберіть акаунт, до якого прив'язати сервіс {{serviceName}}.",
+      "account_label": "Акаунт",
+      "account_placeholder": "Виберіть акаунт...",
+      "search_placeholder": "Пошук акаунтів...",
+      "link_button": "Прив'язати",
+      "success": "Сервіс успішно прив'язано до акаунту!",
+      "no_accounts_found": "Акаунти не знайдено.",
+      "no_available_accounts": "Немає доступних акаунтів для прив'язки.",
+      "errors": {
+        "account_required": "Будь ласка, оберіть акаунт.",
+        "link_failed": "Помилка при прив'язці сервісу до акаунту."
       }
     },
     "link_new": {
-      "title": "Прив'язати нові сервіси",
-      "description": "Виберіть сервіси, які ви хочете додати до цього акаунту.",
-      "search_placeholder": "Пошук сервісів...",
-      "no_services_found": "Не знайдено доступних сервісів.",
-      "link_button": "Прив'язати ({{count}})",
+      "title": "Прив'язати сервіс",
+      "description": "Виберіть сервіси для прив'язування до цього акаунту.",
+      "search_placeholder": "Пошук за назвою або тегом...",
+      "filter_by_type": "Фільтр за типом сервісу",
+      "all_types": "Всі типи",
+      "create_and_link_button": "Створити і прив'язати",
+      "no_services_found": "Не знайдено сервісів за поточними фільтрами.",
+      "link_button": "Прив'язати {{count}}",
       "errors": {
-        "no_services": "Не вибрано жодного сервісу для прив'язки."
-      }
+        "no_services": "Будь ласка, виберіть хоча б один сервіс для прив'язування."
+      },
+      "service_created_and_linked": "Сервіс створено та прив'язано"
     },
     "bulk_create_accounts": {
       "title": "Масове створення акаунтів",
@@ -374,6 +403,9 @@
     "required_field": "Це поле є обов'язковим",
     "data": {
       "title": "Дані сервісу"
+    },
+    "linked_services": {
+      "title": "Сервіси, що використовують цей сервіс"
     },
     "linked_accounts": {
       "title": "Зв'язані акаунти"

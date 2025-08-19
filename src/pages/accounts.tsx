@@ -216,7 +216,7 @@ export default function AccountsList() {
           <Card
             key={account.id}
             className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors cursor-pointer flex flex-col"
-            onClick={() => navigate(`/account/${account.id}`)}
+            onClick={() => navigate(`/accounts/${account.id}`)}
           >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">

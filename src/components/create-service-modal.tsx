@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, KeyRound } from "lucide-react";
+import { Check, ChevronsUpDown, KeyRound, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Fuse from "fuse.js";
 import { useVaultStore } from "../stores/vault-store";
@@ -21,9 +21,12 @@ interface CreateServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   serviceToEdit?: Service | null;
+  defaultTypeId?: string;
+  onSaved?: (service: Service) => void;
+  accountId?: string;
 }
 
-export function CreateServiceModal({ isOpen, onClose, serviceToEdit }: CreateServiceModalProps) {
+export function CreateServiceModal({ isOpen, onClose, serviceToEdit, defaultTypeId, onSaved, accountId }: CreateServiceModalProps) {
   const { t } = useTranslation();
   const { vault, addService, updateService } = useVaultStore();
   const [label, setLabel] = useState("");
@@ -31,6 +34,8 @@ export function CreateServiceModal({ isOpen, onClose, serviceToEdit }: CreateSer
   const [data, setData] = useState<Record<string, string>>({});
   const [tags, setTags] = useState("");
   const [openComboboxes, setOpenComboboxes] = useState<Record<string, boolean>>({});
+  const [creatingLinkedServices, setCreatingLinkedServices] = useState<Record<string, boolean>>({});
+  const [linkedServiceData, setLinkedServiceData] = useState<Record<string, { label: string; data: Record<string, string>; tags: string }>>({});
 
   const serviceTypes = vault?.serviceTypes || [];
   const services = vault?.services || [];
@@ -44,11 +49,13 @@ export function CreateServiceModal({ isOpen, onClose, serviceToEdit }: CreateSer
       setTags(serviceToEdit.tags.join(", "));
     } else {
       setLabel("");
-      setSelectedTypeId("");
+      setSelectedTypeId(defaultTypeId || "");
       setData({});
       setTags("");
+      setCreatingLinkedServices({});
+      setLinkedServiceData({});
     }
-  }, [serviceToEdit, isOpen]);
+  }, [serviceToEdit, isOpen, defaultTypeId]);
 
   const handleDataChange = (key: string, value: string) => {
     setData((prev) => ({ ...prev, [key]: value }));
@@ -60,23 +67,46 @@ export function CreateServiceModal({ isOpen, onClose, serviceToEdit }: CreateSer
       return;
     }
 
-    const newService: Service = {
-      id: serviceToEdit?.id || crypto.randomUUID(),
-      label,
-      serviceTypeId: selectedTypeId,
-      data,
-      tags: tags.split(",").map(tag => tag.trim()).filter(Boolean),
-    };
+    const finalData = { ...data };
 
     try {
-        if (serviceToEdit) {
-            await updateService(newService);
-        } else {
-            await addService(newService);
+      // First, create any new linked services
+      for (const [fieldKey, linkedData] of Object.entries(linkedServiceData)) {
+        if (creatingLinkedServices[fieldKey] && linkedData.label) {
+          const linkedServiceType = selectedType?.fields.find(f => f.key === fieldKey)?.linkedServiceTypeId;
+          if (linkedServiceType) {
+            const newLinkedService: Service = {
+              id: crypto.randomUUID(),
+              label: linkedData.label,
+              serviceTypeId: linkedServiceType,
+              data: linkedData.data,
+              tags: linkedData.tags.split(",").map(tag => tag.trim()).filter(Boolean),
+            };
+            await addService(newLinkedService, accountId);
+            finalData[fieldKey] = newLinkedService.id;
+          }
         }
-        onClose();
+      }
+
+      // Then create/update the main service
+      const newService: Service = {
+        id: serviceToEdit?.id || crypto.randomUUID(),
+        label,
+        serviceTypeId: selectedTypeId,
+        data: finalData,
+        tags: tags.split(",").map(tag => tag.trim()).filter(Boolean),
+      };
+
+      if (serviceToEdit) {
+        await updateService(newService);
+      } else {
+        await addService(newService, accountId);
+      }
+      
+      if (onSaved) onSaved(newService);
+      onClose();
     } catch (e) {
-        // Error is already handled by the store
+      // Error is already handled by the store
     }
   };
   
@@ -87,33 +117,118 @@ export function CreateServiceModal({ isOpen, onClose, serviceToEdit }: CreateSer
         const linkedServices = services.filter(s => s.serviceTypeId === field.linkedServiceTypeId);
         const selectedService = linkedServices.find(s => s.id === value);
         const isOpen = openComboboxes[field.key] || false;
+        const isCreatingNew = creatingLinkedServices[field.key] || false;
+        const linkedServiceType = serviceTypes.find(st => st.id === field.linkedServiceTypeId);
+        
+        if (isCreatingNew) {
+            const currentData = linkedServiceData[field.key] || { label: '', data: {}, tags: '' };
+            
+            return (
+                <div className="space-y-3 p-3 border border-gray-600 rounded-md bg-gray-750">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-blue-400">{t('modals.create_service.creating_new_service', { serviceName: linkedServiceType?.name })}</span>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                setCreatingLinkedServices(prev => ({ ...prev, [field.key]: false }));
+                                setLinkedServiceData(prev => ({ ...prev, [field.key]: { label: '', data: {}, tags: '' } }));
+                            }}
+                            className="text-gray-400 hover:text-white"
+                        >
+                            {t('common.cancel')}
+                        </Button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Label>{t('modals.create_service.service_name')}</Label>
+                        <Input
+                            value={currentData.label}
+                            onChange={(e) => setLinkedServiceData(prev => ({
+                                ...prev,
+                                [field.key]: { ...currentData, label: e.target.value }
+                            }))}
+                            placeholder={t('modals.create_service.service_name_placeholder')}
+                            className="bg-gray-700 border-gray-600"
+                        />
+                    </div>
+                    
+                    {linkedServiceType?.fields.map((linkedField) => (
+                        <div key={linkedField.id} className="space-y-2">
+                            <Label>{linkedField.label} {linkedField.required && <span className="text-red-500">*</span>}</Label>
+                            {linkedField.type === 'textarea' ? (
+                                <Textarea
+                                    value={currentData.data[linkedField.key] || ''}
+                                    onChange={(e) => setLinkedServiceData(prev => ({
+                                        ...prev,
+                                        [field.key]: {
+                                            ...currentData,
+                                            data: { ...currentData.data, [linkedField.key]: e.target.value }
+                                        }
+                                    }))}
+                                    className="bg-gray-700 border-gray-600"
+                                />
+                            ) : (
+                                <Input
+                                    type={linkedField.type === 'secret' ? 'password' : 'text'}
+                                    value={currentData.data[linkedField.key] || ''}
+                                    onChange={(e) => setLinkedServiceData(prev => ({
+                                        ...prev,
+                                        [field.key]: {
+                                            ...currentData,
+                                            data: { ...currentData.data, [linkedField.key]: e.target.value }
+                                        }
+                                    }))}
+                                    className="bg-gray-700 border-gray-600"
+                                />
+                            )}
+                        </div>
+                    ))}
+                    
+                    <div className="space-y-2">
+                        <Label>{t('modals.create_service.tags')}</Label>
+                        <Input
+                            value={currentData.tags}
+                            onChange={(e) => setLinkedServiceData(prev => ({
+                                ...prev,
+                                [field.key]: { ...currentData, tags: e.target.value }
+                            }))}
+                            placeholder={t('modals.create_service.tags_placeholder')}
+                            className="bg-gray-700 border-gray-600"
+                        />
+                    </div>
+                </div>
+            );
+        }
         
         return (
-            <Popover open={isOpen} onOpenChange={(open: boolean) => setOpenComboboxes(prev => ({ ...prev, [field.key]: open }))}>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isOpen}
-                        className="w-full justify-between bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-                    >
-                        {selectedService ? selectedService.label : t('modals.create_service.select_service_placeholder')}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0 bg-gray-700 border-gray-600">
-                    <Command className="bg-gray-700">
-                        <CommandInput placeholder="Пошук сервісів..." className="bg-gray-700 text-white" />
-                        <CommandList>
-                            <CommandEmpty className="text-gray-400">Сервіси не знайдено.</CommandEmpty>
-                            <CommandGroup>
-                                {linkedServices.map((service) => (
-                                    <CommandItem
-                                        key={service.id}
-                                        value={service.label}
-                                        onSelect={() => {
-                                            handleDataChange(field.key, service.id);
-                                            setOpenComboboxes(prev => ({ ...prev, [field.key]: false }));
+            <div className="space-y-2">
+                <div className="flex gap-2">
+                    <Popover open={isOpen} onOpenChange={(open: boolean) => setOpenComboboxes(prev => ({ ...prev, [field.key]: open }))}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={isOpen}
+                                className="flex-1 justify-between bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                            >
+                                {selectedService ? selectedService.label : t('modals.create_service.select_service_placeholder')}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0 bg-gray-700 border-gray-600">
+                            <Command className="bg-gray-700">
+                                <CommandInput placeholder={t('modals.create_service.search_services_placeholder')} className="bg-gray-700 text-white" />
+                                <CommandList>
+                                    <CommandEmpty className="text-gray-400">{t('modals.create_service.no_services_found')}</CommandEmpty>
+                                    <CommandGroup>
+                                        {linkedServices.map((service) => (
+                                            <CommandItem
+                                                key={service.id}
+                                                value={service.label}
+                                                onSelect={() => {
+                                                    handleDataChange(field.key, service.id);
+                                                    setOpenComboboxes(prev => ({ ...prev, [field.key]: false }));
                                         }}
                                         className="text-white hover:bg-gray-600"
                                     >
@@ -131,7 +246,21 @@ export function CreateServiceModal({ isOpen, onClose, serviceToEdit }: CreateSer
                     </Command>
                 </PopoverContent>
             </Popover>
-        )
+            
+            <Button
+                variant="outline"
+                onClick={() => {
+                    setCreatingLinkedServices(prev => ({ ...prev, [field.key]: true }));
+                    setLinkedServiceData(prev => ({ ...prev, [field.key]: { label: '', data: {}, tags: '' } }));
+                }}
+                className="bg-green-600 hover:bg-green-700 border-green-600 text-white"
+            >
+                <Plus className="h-4 w-4 mr-1" />
+                {t('modals.create_service.create_new_service')}
+            </Button>
+        </div>
+        </div>
+        );
     }
 
     if (field.type === '2fa') {

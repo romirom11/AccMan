@@ -29,7 +29,7 @@ interface VaultStore {
   deleteServiceType: (serviceTypeId: string) => Promise<void>;
 
   // Services
-  addService: (service: Service) => Promise<void>;
+  addService: (service: Service, accountId?: string) => Promise<void>;
   addServices: (services: Service[]) => Promise<void>; // Add this
   updateService: (service: Service) => Promise<void>;
   deleteService: (serviceId: string) => Promise<void>;
@@ -156,15 +156,22 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
       });
   },
 
-  addService: async (service: Service) => {
+  addService: async (service: Service, accountId?: string) => {
     const { vault } = get();
     if (!vault) return;
 
-    await vaultApi.addService(service);
+    await vaultApi.addService(service, accountId);
     set({
       vault: {
         ...vault,
         services: [...vault.services, service],
+        accounts: accountId ? vault.accounts.map(acc => {
+          if (acc.id === accountId) {
+            const newLinkedServices = [...acc.linkedServices, service.id];
+            return { ...acc, linkedServices: [...new Set(newLinkedServices)] };
+          }
+          return acc;
+        }) : vault.accounts,
       },
     });
   },

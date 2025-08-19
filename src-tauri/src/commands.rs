@@ -300,13 +300,26 @@ pub fn delete_service_type(
 pub fn add_service(
     path: State<StoragePath>,
     service: Service,
+    account_id: Option<String>,
     app_state: State<AppState>,
     session_state: State<SessionState>,
 ) -> Result<(), CommandError> {
     let mut vault_guard = app_state.0.lock().unwrap();
     let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
 
+    let service_id = service.id.clone();
     vault.services.push(service);
+
+    // If account_id is provided, link the service to the account
+    if let Some(account_id) = account_id {
+        if let Some(account) = vault.accounts.iter_mut().find(|a| a.id == account_id) {
+            account.linked_services.push(service_id);
+            account.linked_services.sort();
+            account.linked_services.dedup();
+        } else {
+            return Err(CommandError::AccountNotFound(account_id));
+        }
+    }
 
     drop(vault_guard);
     save_vault_with_session_password(&path, &app_state, &session_state)?;

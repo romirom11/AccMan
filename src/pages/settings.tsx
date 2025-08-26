@@ -6,18 +6,28 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Shield, Download, Upload, Trash2, Save, Languages } from "lucide-react"
 import { useVaultStore } from "@/stores/vault-store";
 import type { Settings } from "@/types";
 import { toast } from "sonner";
+import { save, open } from '@tauri-apps/plugin-dialog';
 
 export default function SettingsPage() {
-    const { vault, updateSettings, changePassword } = useVaultStore();
+    const { vault, updateSettings, changePassword, exportVault, importVault } = useVaultStore();
     const { t, i18n } = useTranslation();
     const [settings, setSettings] = useState<Settings | null>(vault?.settings || null);
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    
+    // Export/Import states
+    const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+    const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+    const [importPassword, setImportPassword] = useState("");
+    const [importStrategy, setImportStrategy] = useState<'replace' | 'merge'>('merge');
+    const [selectedImportFile, setSelectedImportFile] = useState<string | null>(null);
 
     useEffect(() => {
         if(vault?.settings) {
@@ -61,6 +71,64 @@ export default function SettingsPage() {
             // Error toast is shown by the API layer
         }
     }
+
+    const handleExportVault = async () => {
+        try {
+            const filePath = await save({
+                filters: [{
+                    name: 'Vault Backup',
+                    extensions: ['json']
+                }],
+                defaultPath: 'vault-backup.json'
+            });
+            
+            if (filePath) {
+                await exportVault(filePath);
+                setIsExportDialogOpen(false);
+            }
+        } catch (error) {
+            // Error handling is done in the vault store
+        }
+    };
+
+    const handleSelectImportFile = async () => {
+        try {
+            const selected = await open({
+                filters: [{
+                    name: 'Vault Backup',
+                    extensions: ['json']
+                }],
+                multiple: false
+            });
+            
+            if (selected) {
+                setSelectedImportFile(selected as string);
+            }
+        } catch (error) {
+            toast.error('Failed to select file');
+        }
+    };
+
+    const handleImportVault = async () => {
+        if (!selectedImportFile) {
+            toast.error('Please select a backup file first');
+            return;
+        }
+        
+        if (!importPassword) {
+            toast.error('Please enter the import password');
+            return;
+        }
+        
+        try {
+            await importVault(selectedImportFile, importPassword, importStrategy);
+            setIsImportDialogOpen(false);
+            setImportPassword("");
+            setSelectedImportFile(null);
+        } catch (error) {
+            // Error handling is done in the vault store
+        }
+    };
 
   return (
     <div className="p-6 space-y-6">
@@ -173,14 +241,125 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button variant="outline" className="border-gray-600 text-gray-300 bg-transparent" disabled>
-              <Download className="w-4 h-4 mr-2" />
-              {t('settings.backup.export_button')}
-            </Button>
-            <Button variant="outline" className="border-gray-600 text-gray-300 bg-transparent" disabled>
-              <Upload className="w-4 h-4 mr-2" />
-              {t('settings.backup.import_button')}
-            </Button>
+            <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-gray-600 text-gray-300 bg-transparent hover:bg-gray-700">
+                  <Download className="w-4 h-4 mr-2" />
+                  {t('settings.backup.export_button')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-800 border-gray-700">
+                <DialogHeader>
+                  <DialogTitle className="text-white">{t('settings.backup.export_dialog.title')}</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    {t('settings.backup.export_dialog.description')}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+                    {t('common.cancel')}
+                  </Button>
+                  <Button onClick={handleExportVault} className="bg-gradient-to-r from-green-600 to-green-700">
+                    <Download className="w-4 h-4 mr-2" />
+                    {t('settings.backup.export_button')}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-gray-600 text-gray-300 bg-transparent hover:bg-gray-700">
+                  <Upload className="w-4 h-4 mr-2" />
+                  {t('settings.backup.import_button')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-800 border-gray-700 max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-white">{t('settings.backup.import_dialog.title')}</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    {t('settings.backup.import_dialog.description')}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-gray-300">
+                      {selectedImportFile ? 'Selected file:' : 'Backup file'}
+                    </Label>
+                    {selectedImportFile ? (
+                      <div className="p-2 bg-gray-700 rounded text-sm text-gray-300 break-all">
+                        {selectedImportFile.split('/').pop()}
+                      </div>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        onClick={handleSelectImportFile}
+                        className="w-full border-gray-600 text-gray-300 bg-transparent hover:bg-gray-700"
+                      >
+                        {t('settings.backup.import_dialog.select_file_button')}
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="importPassword" className="text-gray-300">
+                      {t('settings.backup.import_dialog.password_label')}
+                    </Label>
+                    <Input 
+                      id="importPassword" 
+                      type="password" 
+                      className="bg-gray-700 border-gray-600 text-white" 
+                      placeholder={t('settings.backup.import_dialog.password_placeholder')}
+                      value={importPassword} 
+                      onChange={(e) => setImportPassword(e.target.value)} 
+                    />
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Label className="text-gray-300">
+                      {t('settings.backup.import_dialog.merge_strategy_label')}
+                    </Label>
+                    <RadioGroup value={importStrategy} onValueChange={(value: 'replace' | 'merge') => setImportStrategy(value)}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="merge" id="merge" />
+                        <Label htmlFor="merge" className="text-gray-300 cursor-pointer">
+                          <div>
+                            <div className="font-medium">{t('settings.backup.import_dialog.strategy_merge')}</div>
+                            <div className="text-sm text-gray-400">{t('settings.backup.import_dialog.strategy_merge_desc')}</div>
+                          </div>
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="replace" id="replace" />
+                        <Label htmlFor="replace" className="text-gray-300 cursor-pointer">
+                          <div>
+                            <div className="font-medium">{t('settings.backup.import_dialog.strategy_replace')}</div>
+                            <div className="text-sm text-gray-400">{t('settings.backup.import_dialog.strategy_replace_desc')}</div>
+                          </div>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2 mt-6">
+                  <Button variant="outline" onClick={() => {
+                    setIsImportDialogOpen(false);
+                    setImportPassword("");
+                    setSelectedImportFile(null);
+                  }}>
+                    {t('common.cancel')}
+                  </Button>
+                  <Button 
+                    onClick={handleImportVault} 
+                    className="bg-gradient-to-r from-blue-600 to-purple-700"
+                    disabled={!selectedImportFile || !importPassword}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {t('settings.backup.import_dialog.import_button')}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>

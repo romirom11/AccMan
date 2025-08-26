@@ -608,3 +608,107 @@ pub fn bulk_create_accounts(
     save_vault_with_session_password(&path, &app_state, &session_state)?;
     Ok(())
 }
+
+// --- Export/Import Commands ---
+
+/// Export vault to an encrypted file
+#[tauri::command]
+pub fn export_vault(
+    export_path: String,
+    app_state: State<AppState>,
+    session_state: State<SessionState>,
+) -> Result<(), CommandError> {
+    let vault_guard = app_state.0.lock().unwrap();
+    let vault = vault_guard.as_ref().ok_or(CommandError::VaultLocked)?;
+
+    let password_guard = session_state.master_password.lock().unwrap();
+    let password = password_guard.as_ref().ok_or(CommandError::VaultLocked)?;
+
+    // Create a copy of the vault for export
+    let export_vault = vault.clone();
+
+    // Create the export file
+    let vault_json = serde_json::to_string(&export_vault)
+        .map_err(|e| CommandError::Storage(format!("Serialization error: {}", e)))?;
+    
+    let encrypted_vault = crate::crypto::encrypt_vault(vault_json.as_bytes(), password)
+        .map_err(|e| CommandError::Storage(format!("Encryption error: {}", e)))?;
+    
+    let encrypted_json = serde_json::to_string_pretty(&encrypted_vault)
+        .map_err(|e| CommandError::Storage(format!("Serialization error: {}", e)))?;
+    
+    std::fs::write(&export_path, encrypted_json)
+        .map_err(|e| CommandError::Storage(format!("File write error: {}", e)))?;
+
+    Ok(())
+}
+
+/// Import vault from an encrypted file
+#[tauri::command]
+pub fn import_vault(
+    path: State<StoragePath>,
+    import_path: String,
+    password: String,
+    merge_strategy: String, // "replace" or "merge"
+    app_state: State<AppState>,
+    session_state: State<SessionState>,
+) -> Result<Vault, CommandError> {
+    let import_password = MasterPassword(password);
+    
+    // Load the vault from the import file
+    let encrypted_json = std::fs::read_to_string(&import_path)
+        .map_err(|e| CommandError::Storage(format!("File read error: {}", e)))?;
+    
+    let encrypted_vault: crate::crypto::EncryptedVault = serde_json::from_str(&encrypted_json)
+        .map_err(|e| CommandError::Storage(format!("Deserialization error: {}", e)))?;
+    
+    let decrypted_json_bytes = crate::crypto::decrypt_vault(encrypted_vault, &import_password)
+        .map_err(|e| CommandError::Storage(format!("Decryption error: {}", e)))?;
+    
+    let imported_vault: Vault = serde_json::from_slice(&decrypted_json_bytes)
+        .map_err(|e| CommandError::Storage(format!("Deserialization error: {}", e)))?;
+
+    let mut vault_guard = app_state.0.lock().unwrap();
+    let current_vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
+
+    match merge_strategy.as_str() {
+        "replace" => {
+            // Replace current vault with imported vault, but keep current settings
+            let current_settings = current_vault.settings.clone();
+            *current_vault = imported_vault;
+            current_vault.settings = current_settings;
+        }
+        "merge" => {
+            // Merge imported vault with current vault
+            // Merge service types (avoid duplicates by ID)
+            for imported_type in imported_vault.service_types {
+                if !current_vault.service_types.iter().any(|st| st.id == imported_type.id) {
+                    current_vault.service_types.push(imported_type);
+                }
+            }
+
+            // Merge services (avoid duplicates by ID)
+            for imported_service in imported_vault.services {
+                if !current_vault.services.iter().any(|s| s.id == imported_service.id) {
+                    current_vault.services.push(imported_service);
+                }
+            }
+
+            // Merge accounts (avoid duplicates by ID)
+            for imported_account in imported_vault.accounts {
+                if !current_vault.accounts.iter().any(|a| a.id == imported_account.id) {
+                    current_vault.accounts.push(imported_account);
+                }
+            }
+        }
+        _ => return Err(CommandError::Storage("Invalid merge strategy. Use 'replace' or 'merge'.".to_string())),
+    }
+
+    let result_vault = current_vault.clone();
+    drop(vault_guard);
+
+    // Save the updated vault
+    save_vault_with_session_password(&path, &app_state, &session_state)?;
+
+    Ok(result_vault)
+}

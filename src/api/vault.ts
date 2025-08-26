@@ -94,4 +94,11 @@ export const vaultApi = {
   // Get current vault state
   getVault: () =>
     callApi<Vault>('get_vault'),
+
+  // Export/Import
+  exportVault: (exportPath: string) =>
+    callApi<void>('export_vault', { exportPath }),
+
+  importVault: (importPath: string, password: string, mergeStrategy: 'replace' | 'merge') =>
+    callApi<Vault>('import_vault', { importPath, password, mergeStrategy }),
 };

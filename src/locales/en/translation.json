@@ -196,9 +196,29 @@
     },
     "backup": {
       "title": "Backup & Export",
-      "description": "Create backups and export data (not implemented).",
+      "description": "Create backups and export your vault data.",
       "export_button": "Export Vault",
-      "import_button": "Import Vault"
+      "import_button": "Import Vault",
+      "export_dialog": {
+        "title": "Export Vault",
+        "description": "Select where to save your encrypted vault backup.",
+        "file_name": "vault-backup.json",
+        "success": "Vault exported successfully!"
+      },
+      "import_dialog": {
+        "title": "Import Vault",
+        "description": "Import a vault from an encrypted backup file.",
+        "password_label": "Import Password",
+        "password_placeholder": "Enter the password for the backup file",
+        "merge_strategy_label": "Import Strategy",
+        "strategy_replace": "Replace current vault",
+        "strategy_merge": "Merge with current vault",
+        "strategy_replace_desc": "Replace all data with imported vault (keeps current settings)",
+        "strategy_merge_desc": "Add imported data to current vault (avoids duplicates)",
+        "select_file_button": "Select Backup File",
+        "import_button": "Import Vault",
+        "success": "Vault imported successfully!"
+      }
     },
     "danger": {
       "title": "Danger Zone",
@@ -423,7 +443,9 @@
       "account_deleted": "Account successfully deleted",
       "services_linked": "Services successfully linked",
       "services_deleted": "Services successfully deleted",
-      "bulk_accounts_created": "Accounts successfully created in bulk"
+      "bulk_accounts_created": "Accounts successfully created in bulk",
+      "vault_exported": "Vault exported successfully",
+      "vault_imported": "Vault imported successfully"
     },
     "error": {
       "prefix": "Error"

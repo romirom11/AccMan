@@ -45,6 +45,10 @@ interface VaultStore {
   setServicesViewMode: (mode: "grid" | "table") => void;
   setAccountsViewMode: (mode: "grid" | "list") => void;
 
+  // Export/Import
+  exportVault: (filePath: string) => Promise<void>;
+  importVault: (filePath: string, password: string, mergeStrategy: 'replace' | 'merge') => Promise<void>;
+
   resetError: () => void;
 }
 
@@ -296,6 +300,27 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
       toast.success(i18n.t('api.success.bulk_accounts_created'));
     } catch (e: any) {
       console.error('Failed to bulk create accounts:', e);
+      throw e;
+    }
+  },
+
+  exportVault: async (filePath: string) => {
+    try {
+      await vaultApi.exportVault(filePath);
+      toast.success(i18n.t('api.success.vault_exported'));
+    } catch (e: any) {
+      console.error('Failed to export vault:', e);
+      throw e;
+    }
+  },
+
+  importVault: async (filePath: string, password: string, mergeStrategy: 'replace' | 'merge') => {
+    try {
+      const updatedVault = await vaultApi.importVault(filePath, password, mergeStrategy);
+      set({ vault: updatedVault });
+      toast.success(i18n.t('api.success.vault_imported'));
+    } catch (e: any) {
+      console.error('Failed to import vault:', e);
       throw e;
     }
   },

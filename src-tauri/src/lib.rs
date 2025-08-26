@@ -69,7 +69,10 @@ pub fn run() {
             commands::update_account,
             commands::delete_account,
             commands::link_services_to_account,
-            commands::bulk_create_accounts
+            commands::bulk_create_accounts,
+            // Export/Import
+            commands::export_vault,
+            commands::import_vault
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

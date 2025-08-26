@@ -608,3 +608,40 @@ pub fn bulk_create_accounts(
     save_vault_with_session_password(&path, &app_state, &session_state)?;
     Ok(())
 }
+
+// --- Email Commands ---
+
+use crate::email_client::EmailClient;
+use crate::email_providers::is_provider_supported;
+use crate::models::{EmailConnection, EmailFetchResult};
+
+#[tauri::command]
+pub fn is_email_provider_supported(email: String) -> bool {
+    is_provider_supported(&email)
+}
+
+#[tauri::command]
+pub fn test_email_connection(
+    email: String,
+    password: String,
+) -> Result<EmailConnection, String> {
+    let client = EmailClient::new(email, password)
+        .map_err(|e| e.to_string())?;
+    
+    client.test_connection()
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn fetch_recent_emails(
+    email: String,
+    password: String,
+    limit: Option<u32>,
+) -> Result<EmailFetchResult, String> {
+    let client = EmailClient::new(email, password)
+        .map_err(|e| e.to_string())?;
+    
+    let limit = limit.unwrap_or(5); // Default to 5 emails
+    client.fetch_recent_emails(limit)
+        .map_err(|e| e.to_string())
+}

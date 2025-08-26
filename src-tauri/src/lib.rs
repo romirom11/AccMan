@@ -6,6 +6,8 @@ pub mod crypto;
 pub mod models;
 pub mod storage;
 pub mod defaults;
+pub mod email_providers;
+pub mod email_client;
 
 use commands::{AppState, SessionState};
 use std::path::PathBuf;
@@ -69,7 +71,11 @@ pub fn run() {
             commands::update_account,
             commands::delete_account,
             commands::link_services_to_account,
-            commands::bulk_create_accounts
+            commands::bulk_create_accounts,
+            // Email
+            commands::is_email_provider_supported,
+            commands::test_email_connection,
+            commands::fetch_recent_emails
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

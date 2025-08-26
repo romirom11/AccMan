@@ -2,8 +2,7 @@
 
 use base64::{engine::general_purpose, Engine as _};
 use lazy_static::lazy_static;
-use rand::rngs::OsRng;
-use rand::RngCore;
+use getrandom::getrandom;
 use ring::aead::{
     self, BoundKey, Nonce as RingNonce, NonceSequence, OpeningKey, SealingKey, UnboundKey,
 };
@@ -83,12 +82,12 @@ pub fn encrypt_vault(
     password: &MasterPassword,
 ) -> Result<EncryptedVault, CryptoError> {
     let mut salt = [0u8; SALT_LEN];
-    OsRng.fill_bytes(&mut salt);
+    getrandom(&mut salt).map_err(|_| CryptoError::ScryptDerivation)?;
 
     let derived_key = derive_key(password, &salt)?;
 
     let mut nonce_bytes = [0u8; NONCE_LEN];
-    OsRng.fill_bytes(&mut nonce_bytes);
+    getrandom(&mut nonce_bytes).map_err(|_| CryptoError::ScryptDerivation)?;
     let nonce = RingNonce::assume_unique_for_key(nonce_bytes);
 
     let unbound_key =

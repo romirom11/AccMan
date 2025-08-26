@@ -6,7 +6,10 @@
     "save": "Save",
     "cancel": "Cancel",
     "create": "Create",
-    "creating": "Creating..."
+    "creating": "Creating...",
+    "loading": "Loading...",
+    "view": "View",
+    "copied_to_clipboard": "Copied to clipboard"
   },
   "lock_screen": {
     "title": "Unlock Vault",
@@ -428,5 +431,20 @@
     "error": {
       "prefix": "Error"
     }
+  },
+  "email_viewer": {
+    "title": "Email Client",
+    "credentials_required": "Email credentials required",
+    "status": {
+      "connected": "Connected",
+      "disconnected": "Disconnected"
+    },
+    "fetch_emails": "Fetch Emails",
+    "recent_emails": "Recent Emails ({{count}})",
+    "verification_code": "Verification Code",
+    "verification_codes": "Verification Codes",
+    "from": "From",
+    "date": "Date",
+    "connection_failed": "Connection failed"
   }
 }

@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
-import type { Vault, ServiceType, Service, Account, Settings, BulkCreateRequest } from '@/types';
+import type { Vault, ServiceType, Service, Account, Settings, BulkCreateRequest, EmailConnection, EmailFetchResult } from '@/types';
 import i18n from '@/i18n';
 
 /**
@@ -94,4 +94,14 @@ export const vaultApi = {
   // Get current vault state
   getVault: () =>
     callApi<Vault>('get_vault'),
+
+  // Email operations
+  isEmailProviderSupported: (email: string) =>
+    callApi<boolean>('is_email_provider_supported', { email }),
+
+  testEmailConnection: (email: string, password: string) =>
+    callApi<EmailConnection>('test_email_connection', { email, password }),
+
+  fetchRecentEmails: (email: string, password: string, limit?: number) =>
+    callApi<EmailFetchResult>('fetch_recent_emails', { email, password, limit: limit || 5 }),
 };

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,6 +14,8 @@ import { ServiceField } from "@/types"
 import { CreateServiceModal } from "@/components/create-service-modal"
 import { LinkedServiceDetail } from "@/components/linked-service-detail"
 import { LinkServiceToAccountModal } from "@/components/link-service-to-account-modal"
+import { EmailViewer } from "@/components/email-viewer"
+import { vaultApi } from "@/api/vault"
 
 export default function ServiceView() {
   const { id } = useParams<{ id: string }>()
@@ -25,10 +27,28 @@ export default function ServiceView() {
   const [isLinkToAccountModalOpen, setIsLinkToAccountModalOpen] = useState(false)
   const [generatedTokens, setGeneratedTokens] = useState<Record<string, string | null>>({})
   const [expandedLinkedServices, setExpandedLinkedServices] = useState<Record<string, boolean>>({})
+  const [isEmailProviderSupported, setIsEmailProviderSupported] = useState<boolean>(false)
   
   const service = vault?.services.find((srv) => srv.id === id)
   const serviceType = service ? vault?.serviceTypes.find((type) => type.id === service.serviceTypeId) : null
   const allServices = vault?.services || []
+
+  // Check if email provider is supported
+  useEffect(() => {
+    const checkEmailSupport = async () => {
+      if (serviceType?.name.toLowerCase() === 'email' && service?.data.email) {
+        try {
+          const supported = await vaultApi.isEmailProviderSupported(service.data.email)
+          setIsEmailProviderSupported(supported)
+        } catch (error) {
+          setIsEmailProviderSupported(false)
+        }
+      } else {
+        setIsEmailProviderSupported(false)
+      }
+    }
+    checkEmailSupport()
+  }, [service, serviceType])
 
   if (!service || !serviceType) {
     return (
@@ -267,6 +287,19 @@ export default function ServiceView() {
           })}
         </CardContent>
       </Card>
+
+      {/* Email Client - Only for Email services with supported providers */}
+      {serviceType.name.toLowerCase() === 'email' && isEmailProviderSupported && (() => {
+        const emailField = service.data['email'] || '';
+        const passwordField = service.data['password'] || '';
+        
+        return emailField && passwordField && (
+          <EmailViewer 
+            email={emailField}
+            password={passwordField}
+          />
+        );
+      })()}
 
       {/* Linked Services */}
       {(() => {

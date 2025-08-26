@@ -6,7 +6,10 @@
     "save": "Зберегти",
     "cancel": "Скасувати",
     "create": "Створити",
-    "creating": "Створення..."
+    "creating": "Створення...",
+    "loading": "Завантаження...",
+    "view": "Переглянути",
+    "copied_to_clipboard": "Скопійовано в буфер обміну"
   },
   "lock_screen": {
     "title": "Розблокувати сховище",
@@ -436,5 +439,20 @@
     "error": {
       "prefix": "Помилка"
     }
+  },
+  "email_viewer": {
+    "title": "Поштовий клієнт",
+    "credentials_required": "Необхідні дані для доступу до пошти",
+    "status": {
+      "connected": "Підключено",
+      "disconnected": "Відключено"
+    },
+    "fetch_emails": "Отримати листи",
+    "recent_emails": "Останні листи ({{count}})",
+    "verification_code": "Код підтвердження",
+    "verification_codes": "Коди підтвердження",
+    "from": "Від",
+    "date": "Дата",
+    "connection_failed": "Помилка підключення"
   }
 }

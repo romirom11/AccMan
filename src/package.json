@@ -1,7 +1,7 @@
 {
   "name": "accman-frontend",
   "private": true,
-  "version": "0.1.4-prerelease",
+  "version": "0.1.4-1",
   "type": "module",
   "scripts": {
     "dev": "vite",

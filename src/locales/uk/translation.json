@@ -6,7 +6,10 @@
     "save": "Зберегти",
     "cancel": "Скасувати",
     "create": "Створити",
-    "creating": "Створення..."
+    "creating": "Створення...",
+    "loading": "Завантаження...",
+    "view": "Переглянути",
+    "copied_to_clipboard": "Скопійовано в буфер обміну"
   },
   "lock_screen": {
     "title": "Розблокувати сховище",
@@ -202,9 +205,42 @@
     },
     "backup": {
       "title": "Резервне копіювання та експорт",
-      "description": "Створення резервних копій та експорт даних (не реалізовано).",
+      "description": "Створення резервних копій та експорт/імпорт даних сховища.",
       "export_button": "Експортувати сховище",
-      "import_button": "Імпортувати сховище"
+      "import_button": "Імпортувати сховище",
+      "export_dialog": {
+        "title": "Експорт сховища",
+        "description": "Створити зашифровану резервну копію вашого сховища.",
+        "password_label": "Пароль для експорту",
+        "password_placeholder": "Введіть пароль для файлу резервної копії",
+        "confirm_password_label": "Підтвердіть пароль",
+        "confirm_password_placeholder": "Підтвердіть пароль",
+        "export_button": "Експортувати",
+        "default_filename": "AccMan-Vault-Backup.json"
+      },
+      "import_dialog": {
+        "title": "Імпорт сховища",
+        "description": "Імпортувати дані сховища з зашифрованого файлу резервної копії.",
+        "file_label": "Файл резервної копії",
+        "select_file_button": "Вибрати файл",
+        "password_label": "Пароль для імпорту",
+        "password_placeholder": "Введіть пароль файлу резервної копії",
+        "strategy_label": "Стратегія імпорту",
+        "strategy_merge": "Об'єднати з поточним сховищем",
+        "strategy_replace": "Замінити поточне сховище",
+        "import_button": "Імпортувати",
+        "warnings": {
+          "replace": "Увага: Це повністю замінить дані вашого поточного сховища.",
+          "merge": "Примітка: Існуючі дані з відповідними ID будуть збережені."
+        }
+      },
+      "errors": {
+        "passwords_dont_match": "Паролі не співпадають",
+        "password_required": "Пароль є обов'язковим",
+        "file_required": "Будь ласка, виберіть файл резервної копії",
+        "invalid_file": "Неправильний формат файлу резервної копії",
+        "wrong_password": "Неправильний пароль для цього файлу резервної копії"
+      }
     },
     "danger": {
       "title": "Небезпечна зона",
@@ -431,10 +467,27 @@
       "account_deleted": "Акаунт успішно видалено",
       "services_linked": "Сервіси успішно прив'язано",
       "services_deleted": "Сервіси успішно видалені",
-      "bulk_accounts_created": "Акаунти успішно створені масово"
+      "bulk_accounts_created": "Акаунти успішно створені масово",
+      "vault_exported": "Сховище успішно експортовано",
+      "vault_imported": "Сховище успішно імпортовано"
     },
     "error": {
       "prefix": "Помилка"
     }
+  },
+  "email_viewer": {
+    "title": "Поштовий клієнт",
+    "credentials_required": "Необхідні дані для доступу до пошти",
+    "status": {
+      "connected": "Підключено",
+      "disconnected": "Відключено"
+    },
+    "fetch_emails": "Отримати листи",
+    "recent_emails": "Останні листи ({{count}})",
+    "verification_code": "Код підтвердження",
+    "verification_codes": "Коди підтвердження",
+    "from": "Від",
+    "date": "Дата",
+    "connection_failed": "Помилка підключення"
   }
 }

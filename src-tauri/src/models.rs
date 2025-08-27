@@ -59,3 +59,36 @@ pub struct Vault {
     pub accounts: Vec<Account>,
     pub settings: Settings,
 }
+
+// Email-related models
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EmailMessage {
+    pub id: String,
+    pub subject: String,
+    pub from: String,
+    pub date: String,
+    pub body_preview: String, // First 200 chars of body
+    pub body_content: String, // Full email content (text)
+    pub body_html: Option<String>, // HTML content if available
+    pub has_verification_code: bool,
+    pub verification_codes: Vec<String>, // Extracted codes
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EmailConnection {
+    pub email: String,
+    pub provider_name: String,
+    pub is_connected: bool,
+    pub last_error: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EmailFetchResult {
+    pub messages: Vec<EmailMessage>,
+    pub total_count: u32,
+    pub has_more: bool,
+}

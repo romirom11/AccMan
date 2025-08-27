@@ -40,6 +40,8 @@ pub enum CommandError {
     AccountNotFound(String),
     #[error("The old password provided is incorrect.")]
     InvalidOldPassword,
+    #[error("Invalid import password provided.")]
+    InvalidImportPassword,
 }
 
 impl From<StorageError> for CommandError {
@@ -607,4 +609,125 @@ pub fn bulk_create_accounts(
     drop(vault_guard);
     save_vault_with_session_password(&path, &app_state, &session_state)?;
     Ok(())
+}
+
+// --- Email Commands ---
+
+use crate::email_client::EmailClient;
+use crate::email_providers::is_provider_supported;
+use crate::models::{EmailConnection, EmailFetchResult};
+
+#[tauri::command]
+pub fn is_email_provider_supported(email: String) -> bool {
+    is_provider_supported(&email)
+}
+
+#[tauri::command]
+pub fn test_email_connection(
+    email: String,
+    password: String,
+) -> Result<EmailConnection, String> {
+    let client = EmailClient::new(email, password)
+        .map_err(|e| e.to_string())?;
+    
+    client.test_connection()
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn fetch_recent_emails(
+    email: String,
+    password: String,
+    limit: Option<u32>,
+) -> Result<EmailFetchResult, String> {
+    let client = EmailClient::new(email, password)
+        .map_err(|e| e.to_string())?;
+    
+    let limit = limit.unwrap_or(5); // Default to 5 emails
+    client.fetch_recent_emails(limit)
+        .map_err(|e| e.to_string())
+}
+
+// --- Export/Import Commands ---
+
+#[tauri::command]
+pub fn export_vault(
+    path: State<StoragePath>,
+    export_path: String,
+    app_state: State<AppState>,
+    session_state: State<SessionState>,
+) -> Result<(), CommandError> {
+    let vault_guard = app_state.0.lock().unwrap();
+    let vault = vault_guard.as_ref().ok_or(CommandError::VaultLocked)?;
+
+    let password_guard = session_state.master_password.lock().unwrap();
+    let password = password_guard
+        .as_ref()
+        .ok_or(CommandError::VaultLocked)?;
+
+    // Export the vault using the same encryption as the main vault
+    storage::save_vault_to_path(&export_path, vault, password)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn import_vault(
+    path: State<StoragePath>,
+    import_path: String,
+    password: String,
+    merge_strategy: String,
+    app_state: State<AppState>,
+    session_state: State<SessionState>,
+) -> Result<Vault, CommandError> {
+    // Load the imported vault
+    let import_password = MasterPassword(password);
+    let imported_vault = storage::load_vault_from_path(&import_path, &import_password)?;
+    
+    let mut vault_guard = app_state.0.lock().unwrap();
+    let current_vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
+
+    // Apply merge strategy
+    match merge_strategy.as_str() {
+        "replace" => {
+            *current_vault = imported_vault;
+        }
+        "merge" => {
+            merge_vaults(current_vault, imported_vault);
+        }
+        _ => return Err(CommandError::Storage("Invalid merge strategy. Must be 'replace' or 'merge'".to_string())),
+    }
+
+    let result_vault = current_vault.clone();
+    drop(vault_guard);
+    
+    // Save the updated vault
+    save_vault_with_session_password(&path, &app_state, &session_state)?;
+    
+    Ok(result_vault)
+}
+
+// Helper function to merge two vaults
+fn merge_vaults(current: &mut Vault, imported: Vault) {
+    // Merge service types (avoid duplicates by ID)
+    for imported_st in imported.service_types {
+        if !current.service_types.iter().any(|st| st.id == imported_st.id) {
+            current.service_types.push(imported_st);
+        }
+    }
+    
+    // Merge services (avoid duplicates by ID)
+    for imported_service in imported.services {
+        if !current.services.iter().any(|s| s.id == imported_service.id) {
+            current.services.push(imported_service);
+        }
+    }
+    
+    // Merge accounts (avoid duplicates by ID)
+    for imported_account in imported.accounts {
+        if !current.accounts.iter().any(|a| a.id == imported_account.id) {
+            current.accounts.push(imported_account);
+        }
+    }
+    
+    // Keep current settings (don't merge settings)
 }

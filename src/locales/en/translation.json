@@ -6,7 +6,10 @@
     "save": "Save",
     "cancel": "Cancel",
     "create": "Create",
-    "creating": "Creating..."
+    "creating": "Creating...",
+    "loading": "Loading...",
+    "view": "View",
+    "copied_to_clipboard": "Copied to clipboard"
   },
   "lock_screen": {
     "title": "Unlock Vault",
@@ -196,9 +199,42 @@
     },
     "backup": {
       "title": "Backup & Export",
-      "description": "Create backups and export data (not implemented).",
+      "description": "Create backups and export/import your vault data.",
       "export_button": "Export Vault",
-      "import_button": "Import Vault"
+      "import_button": "Import Vault",
+      "export_dialog": {
+        "title": "Export Vault",
+        "description": "Create an encrypted backup of your vault.",
+        "password_label": "Export Password",
+        "password_placeholder": "Enter password for backup file",
+        "confirm_password_label": "Confirm Password",
+        "confirm_password_placeholder": "Confirm password",
+        "export_button": "Export",
+        "default_filename": "AccMan-Vault-Backup.json"
+      },
+      "import_dialog": {
+        "title": "Import Vault",
+        "description": "Import vault data from an encrypted backup file.",
+        "file_label": "Backup File",
+        "select_file_button": "Select File",
+        "password_label": "Import Password",
+        "password_placeholder": "Enter backup file password",
+        "strategy_label": "Import Strategy",
+        "strategy_merge": "Merge with current vault",
+        "strategy_replace": "Replace current vault",
+        "import_button": "Import",
+        "warnings": {
+          "replace": "Warning: This will completely replace your current vault data.",
+          "merge": "Note: Existing data with matching IDs will be preserved."
+        }
+      },
+      "errors": {
+        "passwords_dont_match": "Passwords do not match",
+        "password_required": "Password is required",
+        "file_required": "Please select a backup file",
+        "invalid_file": "Invalid backup file format",
+        "wrong_password": "Invalid password for this backup file"
+      }
     },
     "danger": {
       "title": "Danger Zone",
@@ -423,10 +459,27 @@
       "account_deleted": "Account successfully deleted",
       "services_linked": "Services successfully linked",
       "services_deleted": "Services successfully deleted",
-      "bulk_accounts_created": "Accounts successfully created in bulk"
+      "bulk_accounts_created": "Accounts successfully created in bulk",
+      "vault_exported": "Vault successfully exported",
+      "vault_imported": "Vault successfully imported"
     },
     "error": {
       "prefix": "Error"
     }
+  },
+  "email_viewer": {
+    "title": "Email Client",
+    "credentials_required": "Email credentials required",
+    "status": {
+      "connected": "Connected",
+      "disconnected": "Disconnected"
+    },
+    "fetch_emails": "Fetch Emails",
+    "recent_emails": "Recent Emails ({{count}})",
+    "verification_code": "Verification Code",
+    "verification_codes": "Verification Codes",
+    "from": "From",
+    "date": "Date",
+    "connection_failed": "Connection failed"
   }
 }

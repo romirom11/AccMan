@@ -63,3 +63,30 @@ export interface BulkCreateRequest {
   linkServices: boolean
   serviceConfigs: ServiceLinkConfig[]
 }
+
+// Email-related types
+
+export interface EmailMessage {
+  id: string
+  subject: string
+  from: string
+  date: string
+  bodyPreview: string
+  bodyContent: string
+  bodyHtml?: string
+  hasVerificationCode: boolean
+  verificationCodes: string[]
+}
+
+export interface EmailConnection {
+  email: string
+  providerName: string
+  isConnected: boolean
+  lastError?: string
+}
+
+export interface EmailFetchResult {
+  messages: EmailMessage[]
+  totalCount: number
+  hasMore: boolean
+}

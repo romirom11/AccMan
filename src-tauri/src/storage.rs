@@ -106,3 +106,67 @@ pub fn load_vault(
     info!("Vault loaded and decrypted successfully.");
     Ok(vault)
 }
+
+// --- Export/Import Functions ---
+
+pub fn save_vault_to_path(
+    file_path: &str,
+    vault: &Vault,
+    password: &MasterPassword,
+) -> Result<(), StorageError> {
+    info!("Attempting to export vault to {}", file_path);
+    let vault_json = serde_json::to_string(vault).map_err(|e| {
+        error!("Failed to serialize vault for export: {}", e);
+        StorageError::from(e)
+    })?;
+
+    let encrypted_vault = crypto::encrypt_vault(vault_json.as_bytes(), password).map_err(|e| {
+        error!("Failed to encrypt vault for export: {}", e);
+        StorageError::from(e)
+    })?;
+    let encrypted_json = serde_json::to_string_pretty(&encrypted_vault).map_err(|e| {
+        error!("Failed to serialize encrypted vault for export: {}", e);
+        StorageError::from(e)
+    })?;
+
+    fs::write(file_path, encrypted_json).map_err(|e| {
+        error!("Failed to write exported vault to file: {}", e);
+        StorageError::from(e)
+    })?;
+    
+    info!("Vault exported successfully to {}", file_path);
+    Ok(())
+}
+
+pub fn load_vault_from_path(
+    file_path: &str,
+    password: &MasterPassword,
+) -> Result<Vault, StorageError> {
+    info!("Attempting to load vault from {}", file_path);
+    if !std::path::Path::new(file_path).exists() {
+        error!("Import file not found at {}", file_path);
+        return Err(StorageError::NotFound(file_path.to_string()));
+    }
+
+    let encrypted_json = fs::read_to_string(file_path).map_err(|e| {
+        error!("Failed to read import file: {}", e);
+        StorageError::from(e)
+    })?;
+    let encrypted_vault: EncryptedVault = serde_json::from_str(&encrypted_json).map_err(|e| {
+        error!("Failed to deserialize encrypted vault from import JSON: {}", e);
+        StorageError::from(e)
+    })?;
+
+    let decrypted_json_bytes = crypto::decrypt_vault(encrypted_vault, password).map_err(|e| {
+        error!("Failed to decrypt imported vault (invalid password?): {}", e);
+        StorageError::from(e)
+    })?;
+
+    let vault: Vault = serde_json::from_slice(&decrypted_json_bytes).map_err(|e| {
+        error!("Failed to deserialize vault from decrypted import JSON: {}", e);
+        StorageError::from(e)
+    })?;
+    
+    info!("Vault imported and decrypted successfully from {}", file_path);
+    Ok(vault)
+}

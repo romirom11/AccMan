@@ -56,6 +56,9 @@ pub fn run() {
             // Settings
             commands::update_settings,
             commands::change_master_password,
+            // Export/Import
+            commands::export_vault,
+            commands::import_vault,
             // ServiceType
             commands::add_service_type,
             commands::update_service_type,

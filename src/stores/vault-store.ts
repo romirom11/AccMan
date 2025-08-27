@@ -23,6 +23,10 @@ interface VaultStore {
   updateSettings: (settings: Settings) => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
 
+  // Export/Import
+  exportVault: (exportPath: string) => Promise<void>;
+  importVault: (importPath: string, password: string, mergeStrategy: 'replace' | 'merge') => Promise<void>;
+
   // Service Types
   addServiceType: (serviceType: ServiceType) => Promise<void>;
   updateServiceType: (serviceType: ServiceType) => Promise<void>;
@@ -298,6 +302,17 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
       console.error('Failed to bulk create accounts:', e);
       throw e;
     }
+  },
+
+  exportVault: async (exportPath: string) => {
+    await vaultApi.exportVault(exportPath);
+    toast.success(i18n.t('api.success.vault_exported'));
+  },
+
+  importVault: async (importPath: string, password: string, mergeStrategy: 'replace' | 'merge') => {
+    const updatedVault = await vaultApi.importVault(importPath, password, mergeStrategy);
+    set({ vault: updatedVault });
+    toast.success(i18n.t('api.success.vault_imported'));
   },
 
   resetError: () => {

@@ -104,4 +104,11 @@ export const vaultApi = {
 
   fetchRecentEmails: (email: string, password: string, limit?: number) =>
     callApi<EmailFetchResult>('fetch_recent_emails', { email, password, limit: limit || 5 }),
+
+  // Export/Import
+  exportVault: (exportPath: string) =>
+    callApi<void>('export_vault', { exportPath }),
+
+  importVault: (importPath: string, password: string, mergeStrategy: 'replace' | 'merge') =>
+    callApi<Vault>('import_vault', { importPath, password, mergeStrategy }),
 };

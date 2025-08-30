@@ -1,15 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2, Eye, EyeOff, Copy, Globe, ArrowLeft, KeyRound, RefreshCw, Link } from "lucide-react"
+import { Edit, Trash2, Eye, EyeOff, Copy, Globe, ArrowLeft, ArrowRight, KeyRound, RefreshCw, Link } from "lucide-react"
 import { useVaultStore } from "../stores/vault-store"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import * as OTPAuth from "otpauth";
+import Fuse from "fuse.js";
 import { ServiceField } from "@/types"
 import { CreateServiceModal } from "@/components/create-service-modal"
 import { LinkedServiceDetail } from "@/components/linked-service-detail"
@@ -33,6 +34,53 @@ export default function ServiceView() {
   const serviceType = service ? vault?.serviceTypes.find((type) => type.id === service.serviceTypeId) : null
   const allServices = vault?.services || []
 
+  // Compute filtered/sorted services order based on ServicesLibrary logic
+  const serviceTypes = vault?.serviceTypes || []
+  const getServiceType = (serviceTypeId: string) => serviceTypes.find((type) => type.id === serviceTypeId)
+
+  const searchQuery = (typeof window !== 'undefined' ? localStorage.getItem('services-search-query') : '') || ''
+  const selectedType = (typeof window !== 'undefined' ? localStorage.getItem('services-selected-type') : '') || 'all'
+  const sortOrder = ((typeof window !== 'undefined' ? localStorage.getItem('services-sort-order') : '') as 'asc' | 'desc' | 'none') || 'asc'
+  const sortBy = ((typeof window !== 'undefined' ? localStorage.getItem('services-sort-by') : '') as 'name' | 'type') || 'name'
+
+  const fuse = useMemo(() => new Fuse(allServices, {
+    keys: ['label', 'tags'],
+    threshold: 0.3,
+    includeScore: true,
+  }), [allServices])
+
+  const orderedServices = useMemo(() => {
+    let results = allServices
+
+    if (searchQuery) {
+      results = fuse.search(searchQuery).map(r => r.item)
+    }
+
+    if (selectedType !== 'all') {
+      results = results.filter(s => s.serviceTypeId === selectedType)
+    }
+
+    if (sortOrder !== 'none') {
+      const naturalSort = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+      results = [...results].sort((a, b) => {
+        let cmp = 0
+        if (sortBy === 'name') {
+          cmp = naturalSort(a.label, b.label)
+        } else {
+          const typeA = getServiceType(a.serviceTypeId)?.name || ''
+          const typeB = getServiceType(b.serviceTypeId)?.name || ''
+          cmp = naturalSort(typeA, typeB)
+        }
+        return sortOrder === 'asc' ? cmp : -cmp
+      })
+    }
+
+    return results
+  }, [allServices, searchQuery, selectedType, sortOrder, sortBy, fuse, serviceTypes])
+
+  const currentIndex = useMemo(() => orderedServices.findIndex(s => s.id === id), [orderedServices, id])
+  const prevServiceId = currentIndex > 0 ? orderedServices[currentIndex - 1]?.id : undefined
+  const nextServiceId = currentIndex >= 0 && currentIndex < orderedServices.length - 1 ? orderedServices[currentIndex + 1]?.id : undefined
   // Check if email provider is supported
   useEffect(() => {
     const checkEmailSupport = async () => {
@@ -185,7 +233,33 @@ export default function ServiceView() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              {/* Prev/Next navigation on the right side of header */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="border-gray-600 text-gray-300 bg-transparent disabled:opacity-50"
+                onClick={() => prevServiceId && navigate(`/services/${prevServiceId}`)}
+                disabled={!prevServiceId}
+                aria-label="Previous"
+                title="Previous"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="border-gray-600 text-gray-300 bg-transparent disabled:opacity-50"
+                onClick={() => nextServiceId && navigate(`/services/${nextServiceId}`)}
+                disabled={!nextServiceId}
+                aria-label="Next"
+                title="Next"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+
+              <div className="w-px h-6 bg-gray-600" />
+
               <Button 
                 variant="outline" 
                 className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white bg-transparent"
@@ -243,7 +317,7 @@ export default function ServiceView() {
                   </div>
                   {field.type === 'linked_service' && value && expandedLinkedServices[field.id] && (
                     <div className="mt-2">
-                      <LinkedServiceDetail service={allServices.find(s => s.id === value)!} />
+                      <LinkedServiceDetail service={allServices.find(s => s.id === value)} />
                     </div>
                   )}
                   {field.required && !value && (
@@ -317,29 +391,26 @@ export default function ServiceView() {
               {linkedServices.map((linkedService) => {
                 const linkedServiceType = vault?.serviceTypes.find(type => type.id === linkedService.serviceTypeId);
                 return (
-                  <div
+                  <Card
                     key={linkedService.id}
-                    className="flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-650 transition-colors cursor-pointer"
+                    className="bg-gray-700 border-gray-600 hover:bg-gray-650 transition-colors cursor-pointer"
                     onClick={() => navigate(`/services/${linkedService.id}`)}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold">{linkedServiceType?.name.charAt(0) || 'S'}</span>
-                      </div>
-                      <div>
-                        <h3 className="text-white font-medium">{linkedService.label}</h3>
-                        <p className="text-gray-400 text-sm">{linkedServiceType?.name}</p>
-                        <div className="flex gap-1 mt-1">
-                          {linkedService.tags.slice(0, 2).map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
+                    <CardHeader className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-700 rounded-lg flex items-center justify-center">
+                            <span className="text-white font-bold">{linkedServiceType?.name.charAt(0) || 'S'}</span>
+                          </div>
+                          <div>
+                            <h3 className="text-white font-medium">{linkedService.label}</h3>
+                            <p className="text-gray-400 text-sm">{linkedServiceType?.name}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                );
+                    </CardHeader>
+                  </Card>
+                )
               })}
             </CardContent>
           </Card>
@@ -397,3 +468,5 @@ export default function ServiceView() {
     </div>
   )
 }
+
+// Removed erroneous trailing block

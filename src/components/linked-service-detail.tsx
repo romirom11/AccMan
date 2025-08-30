@@ -9,9 +9,10 @@ import { useVaultStore } from "@/stores/vault-store"
 import { Service, ServiceField } from "@/types"
 import { CreateServiceModal } from "./create-service-modal"
 import * as OTPAuth from "otpauth";
+import { useNavigate } from "react-router-dom"
 
 interface LinkedServiceDetailProps {
-  service: Service
+  service: Service | undefined
 }
 
 export function LinkedServiceDetail({ service }: LinkedServiceDetailProps) {
@@ -20,6 +21,9 @@ export function LinkedServiceDetail({ service }: LinkedServiceDetailProps) {
   const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [generatedTokens, setGeneratedTokens] = useState<Record<string, string | null>>({})
+  const navigate = useNavigate()
+
+  if (!service) return null;
 
   const serviceType = vault?.serviceTypes.find((st) => st.id === service.serviceTypeId)
 
@@ -76,14 +80,25 @@ export function LinkedServiceDetail({ service }: LinkedServiceDetailProps) {
                 <Link2 className="w-4 h-4" />
                 <span>{t('components.linked_service.title', { label: service.label })}</span>
              </div>
-             <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-white"
-                onClick={() => setIsEditModalOpen(true)}
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
+             <div className="flex items-center gap-1">
+               <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-white"
+                  title={t('common.view')}
+                  onClick={() => navigate(`/services/${service.id}`)}
+                >
+                  <Eye className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => setIsEditModalOpen(true)}
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
+             </div>
           </div>
           <div className="space-y-2">
             {serviceType.fields.map((field) => {
@@ -136,8 +151,8 @@ export function LinkedServiceDetail({ service }: LinkedServiceDetailProps) {
                     )}
                   </div>
                 </div>
-              )
-            })}
+              )}
+            )}
           </div>
         </CardContent>
       </Card>

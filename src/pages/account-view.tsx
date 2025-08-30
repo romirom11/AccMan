@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Edit, Trash2, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Link, Save, Unlink, ArrowLeft, KeyRound, RefreshCw, Plus } from "lucide-react"
+import { Edit, Trash2, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Link, Save, Unlink, ArrowLeft, ArrowRight, KeyRound, RefreshCw, Plus } from "lucide-react"
 import { useVaultStore } from "../stores/vault-store"
 import { LinkNewServicesModal } from "@/components/link-new-services-modal"
 import { CreateAccountModal } from "@/components/create-account-modal"
@@ -19,6 +19,7 @@ import { toast } from "sonner"
 import * as OTPAuth from "otpauth";
 import { ServiceField } from "@/types"
 import type { Service } from "@/types"
+import Fuse from "fuse.js"
 
 export default function AccountView() {
   const { id } = useParams<{ id: string }>()
@@ -38,8 +39,46 @@ export default function AccountView() {
   const [openServices, setOpenServices] = useState<Record<string, boolean>>({})
   const [generatedTokens, setGeneratedTokens] = useState<Record<string, string | null>>({})
 
-  const linkedServices = vault?.services.filter((service) => account?.linkedServices.includes(service.id)) || []
-  const allServices = vault?.services || [];
+  const linkedServices = vault?.services.filter((service) => account?.linkedServices?.includes(service.id)) || []
+  const allServices = vault?.services || []
+  const allAccounts = vault?.accounts || []
+
+  // Compute filtered/sorted accounts order based on Accounts list logic
+  const searchTerm = (typeof window !== 'undefined' ? localStorage.getItem('accounts-search-term') : '') || ''
+  const selectedTag = (typeof window !== 'undefined' ? localStorage.getItem('accounts-selected-tag') : '') || 'all'
+  const sortOrder = ((typeof window !== 'undefined' ? localStorage.getItem('accounts-sort-order') : '') as 'asc' | 'desc' | 'none') || 'asc'
+
+  const fuse = useMemo(() => new Fuse(allAccounts, {
+    keys: ['label', 'notes', 'tags'],
+    threshold: 0.3,
+    includeScore: true,
+  }), [allAccounts])
+
+  const orderedAccounts = useMemo(() => {
+    let results = allAccounts
+
+    if (searchTerm) {
+      results = fuse.search(searchTerm).map(r => r.item)
+    }
+
+    if (selectedTag !== 'all') {
+      results = results.filter(a => a.tags.includes(selectedTag))
+    }
+
+    if (sortOrder !== 'none') {
+      const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+      results = [...results].sort((a, b) => {
+        const cmp = collator.compare(a.label, b.label)
+        return sortOrder === 'asc' ? cmp : -cmp
+      })
+    }
+
+    return results
+  }, [allAccounts, searchTerm, selectedTag, sortOrder, fuse])
+
+  const currentIndex = useMemo(() => orderedAccounts.findIndex(a => a.id === id), [orderedAccounts, id])
+  const prevAccountId = currentIndex > 0 ? orderedAccounts[currentIndex - 1]?.id : undefined
+  const nextAccountId = currentIndex >= 0 && currentIndex < orderedAccounts.length - 1 ? orderedAccounts[currentIndex + 1]?.id : undefined
 
   if (!account) {
     return (
@@ -187,22 +226,46 @@ export default function AccountView() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                className="border-gray-600 text-gray-300 bg-transparent"
-                onClick={handleEditAccount}
+              {/* Prev/Next navigation on the right side of header */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="border-gray-600 text-gray-300 bg-transparent disabled:opacity-50"
+                onClick={() => prevAccountId && navigate(`/accounts/${prevAccountId}`)}
+                disabled={!prevAccountId}
+                aria-label="Previous"
+                title="Previous"
               >
-                <Edit className="w-4 h-4 mr-2" />
-                {t('common.edit')}
+                <ArrowLeft className="w-4 h-4" />
               </Button>
               <Button
                 variant="outline"
-                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white bg-transparent"
-                onClick={handleDeleteAccount}
+                size="icon"
+                className="border-gray-600 text-gray-300 bg-transparent disabled:opacity-50"
+                onClick={() => nextAccountId && navigate(`/accounts/${nextAccountId}`)}
+                disabled={!nextAccountId}
+                aria-label="Next"
+                title="Next"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                {t('common.delete')}
+                <ArrowRight className="w-4 h-4" />
               </Button>
+              <div className="w-px h-6 bg-gray-600" />
+               <Button 
+                 variant="outline" 
+                 className="border-gray-600 text-gray-300 bg-transparent"
+                 onClick={handleEditAccount}
+               >
+                 <Edit className="w-4 h-4 mr-2" />
+                 {t('common.edit')}
+               </Button>
+               <Button
+                 variant="outline"
+                 className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white bg-transparent"
+                 onClick={handleDeleteAccount}
+               >
+                 <Trash2 className="w-4 h-4 mr-2" />
+                 {t('common.delete')}
+               </Button>
             </div>
           </div>
         </CardHeader>

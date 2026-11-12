@@ -1,6 +1,4 @@
-"use client"
-
-import { useState, useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,77 +6,61 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Edit, Trash2, ChevronDown, ChevronRight, Eye, EyeOff, Copy, Link, Save, Unlink, ArrowLeft, ArrowRight, KeyRound, RefreshCw, Plus } from "lucide-react"
-import { useVaultStore } from "../stores/vault-store"
+import { Edit, Trash2, ChevronDown, ChevronRight, Link, Save, Unlink, ArrowLeft, Plus, Pin, PinOff, X, ExternalLink } from "lucide-react"
+import { useVaultStore } from "@/stores/vault-store"
 import { LinkNewServicesModal } from "@/components/link-new-services-modal"
 import { CreateAccountModal } from "@/components/create-account-modal"
 import { CreateServiceModal } from "@/components/create-service-modal"
-import { confirm } from "@tauri-apps/plugin-dialog"
 import { LinkedServiceDetail } from "@/components/linked-service-detail"
-import { toast } from "sonner"
-import * as OTPAuth from "otpauth";
-import { ServiceField } from "@/types"
+import { FieldValueRow } from "@/components/field-value-row"
+import { ListPager } from "@/components/list-pager"
+import { useAccountNeighbors } from "@/hooks/use-list-navigation"
+import { findServiceType, getServiceTitle } from "@/lib/service-helpers"
+import { currentLanguage } from "@/i18n"
+import { cn } from "@/lib/utils"
+import { confirmLeave, useUnsavedGuard } from "@/lib/unsaved-guard"
+import { confirm } from "@tauri-apps/plugin-dialog"
 import type { Service } from "@/types"
-import Fuse from "fuse.js"
 
+function formatTimestamp(ms: number): string {
+  return new Intl.DateTimeFormat(currentLanguage(), { dateStyle: "medium", timeStyle: "short" }).format(new Date(ms))
+}
+
+// The route renders this page keyed by :id, so all local state belongs to one account.
 export default function AccountView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { t } = useTranslation();
-  const { vault, updateAccount, deleteAccount, linkServicesToAccount } = useVaultStore()
-  const [editingNotes, setEditingNotes] = useState(false)
-  
+  const { t } = useTranslation()
+  const vault = useVaultStore((s) => s.vault)
+  const updateAccount = useVaultStore((s) => s.updateAccount)
+  const deleteAccount = useVaultStore((s) => s.deleteAccount)
+  const unlinkServicesFromAccount = useVaultStore((s) => s.unlinkServicesFromAccount)
+  const setPinned = useVaultStore((s) => s.setPinned)
+
   const account = vault?.accounts.find((acc) => acc.id === id)
-  const [notes, setNotes] = useState(account?.notes || "")
+  // Previous/Next in the order the Accounts page currently shows.
+  const neighbors = useAccountNeighbors(id)
+
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [notesDraft, setNotesDraft] = useState("")
+  const [savingNotes, setSavingNotes] = useState(false)
+  const [busy, setBusy] = useState<null | "delete" | "pin" | `unlink:${string}`>(null)
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isCreateServiceModalOpen, setIsCreateServiceModalOpen] = useState(false)
-  const [isEditServiceModalOpen, setIsEditServiceModalOpen] = useState(false)
   const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null)
-  const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
   const [openServices, setOpenServices] = useState<Record<string, boolean>>({})
-  const [generatedTokens, setGeneratedTokens] = useState<Record<string, string | null>>({})
 
-  const linkedServices = vault?.services.filter((service) => account?.linkedServices?.includes(service.id)) || []
-  const allServices = vault?.services || []
-  const allAccounts = vault?.accounts || []
+  const notesDirty = editingNotes && !!account && notesDraft !== account.notes
+  // Leaving the page (sidebar, command palette, the buttons below) or cancelling asks first.
+  useUnsavedGuard(notesDirty, t('account_view.notes.discard_confirm'))
 
-  // Compute filtered/sorted accounts order based on Accounts list logic
-  const searchTerm = (typeof window !== 'undefined' ? localStorage.getItem('accounts-search-term') : '') || ''
-  const selectedTag = (typeof window !== 'undefined' ? localStorage.getItem('accounts-selected-tag') : '') || 'all'
-  const sortOrder = ((typeof window !== 'undefined' ? localStorage.getItem('accounts-sort-order') : '') as 'asc' | 'desc' | 'none') || 'asc'
-
-  const fuse = useMemo(() => new Fuse(allAccounts, {
-    keys: ['label', 'notes', 'tags'],
-    threshold: 0.3,
-    includeScore: true,
-  }), [allAccounts])
-
-  const orderedAccounts = useMemo(() => {
-    let results = allAccounts
-
-    if (searchTerm) {
-      results = fuse.search(searchTerm).map(r => r.item)
-    }
-
-    if (selectedTag !== 'all') {
-      results = results.filter(a => a.tags.includes(selectedTag))
-    }
-
-    if (sortOrder !== 'none') {
-      const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
-      results = [...results].sort((a, b) => {
-        const cmp = collator.compare(a.label, b.label)
-        return sortOrder === 'asc' ? cmp : -cmp
-      })
-    }
-
-    return results
-  }, [allAccounts, searchTerm, selectedTag, sortOrder, fuse])
-
-  const currentIndex = useMemo(() => orderedAccounts.findIndex(a => a.id === id), [orderedAccounts, id])
-  const prevAccountId = currentIndex > 0 ? orderedAccounts[currentIndex - 1]?.id : undefined
-  const nextAccountId = currentIndex >= 0 && currentIndex < orderedAccounts.length - 1 ? orderedAccounts[currentIndex + 1]?.id : undefined
+  // In the account's link order; ids of services that no longer exist are skipped.
+  const linkedServices = useMemo(() => {
+    if (!account || !vault) return []
+    const byId = new Map(vault.services.map((s) => [s.id, s]))
+    return account.linkedServices.map((sid) => byId.get(sid)).filter((s): s is Service => !!s)
+  }, [account, vault])
 
   if (!account) {
     return (
@@ -86,186 +68,192 @@ export default function AccountView() {
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="text-center py-12">
             <p className="text-gray-400">{t('account_view.not_found')}</p>
+            <Button variant="outline" className="mt-4 border-gray-600 text-gray-300" onClick={() => navigate('/accounts')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {t('account_view.back_to_accounts')}
+            </Button>
           </CardContent>
         </Card>
       </div>
     )
   }
 
-  const handleSaveNotes = async () => {
-    if (!account) return;
-    await updateAccount({ ...account, notes });
-    setEditingNotes(false);
+  const startEditingNotes = () => {
+    // Seed from the current account every time, never from an earlier draft.
+    setNotesDraft(account.notes)
+    setEditingNotes(true)
   }
 
-  const handleEditAccount = () => {
-    setIsEditModalOpen(true);
+  const cancelEditingNotes = async () => {
+    if (savingNotes) return
+    if (notesDirty && !(await confirmLeave())) return
+    setEditingNotes(false)
+    setNotesDraft("")
+  }
+
+  const navigateAway = async (to: string) => {
+    if (await confirmLeave()) navigate(to)
+  }
+
+  // Replaces the entry, so "back" still leads to where the user came from.
+  const goToAccount = async (accountId: string) => {
+    if (await confirmLeave()) navigate(`/accounts/${accountId}`, { replace: true })
+  }
+
+  const handleSaveNotes = async () => {
+    if (savingNotes) return
+    if (notesDraft === account.notes) {
+      setEditingNotes(false)
+      return
+    }
+    setSavingNotes(true)
+    try {
+      // The store fills in pinned/timestamps and the backend sanitises linkedServices.
+      await updateAccount({ ...account, notes: notesDraft })
+      setEditingNotes(false)
+    } catch {
+      // Error toast shown by the API layer; keep the editor open with the draft.
+    } finally {
+      setSavingNotes(false)
+    }
   }
 
   const handleDeleteAccount = async () => {
-    if (!account) return;
-    const confirmed = await confirm(t('accounts.delete_confirm.message'), { title: t('accounts.delete_confirm.title') });
-    if (confirmed) {
-      await deleteAccount(account.id);
-      navigate('/accounts');
-    }
-  }
-
-  const handleUnlinkService = async (serviceId: string) => {
-    if(!account) return;
-    const confirmed = await confirm(t('account_view.unlink_confirm_message'), { title: t('account_view.unlink_confirm_title') });
-    if(confirmed) {
-        const updatedLinkedServices = account.linkedServices.filter(id => id !== serviceId);
-        await updateAccount({ ...account, linkedServices: updatedLinkedServices });
-    }
-  }
-
-  const handleEditService = (service: Service) => {
-    setServiceToEdit(service);
-    setIsEditServiceModalOpen(true);
-  }
-
-  const getServiceType = (serviceTypeId: string) => {
-    return vault?.serviceTypes.find((type) => type.id === serviceTypeId)
-  }
-
-  const toggleSecretVisibility = (fieldKey: string) => {
-    setVisibleSecrets((prev) => ({
-      ...prev,
-      [fieldKey]: !prev[fieldKey],
-    }))
-
-    if (!visibleSecrets[fieldKey]) {
-      setTimeout(() => {
-        setVisibleSecrets((prev) => ({
-          ...prev,
-          [fieldKey]: false,
-        }))
-      }, 15000)
-    }
-  }
-
-  const toggleServiceOpen = (serviceId: string) => {
-    setOpenServices((prev) => ({
-      ...prev,
-      [serviceId]: !prev[serviceId],
-    }))
-  }
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-  }
-  
-  const renderFieldValue = (field: ServiceField, value: string) => {
-    const isSecret = field.type === "secret" || field.masked;
-    const isVisible = visibleSecrets[`${field.id}`]
-    const displayValue = isSecret && !isVisible ? "••••••••" : value
-
-    return displayValue || <span className="text-gray-500 italic">{t('account_view.empty_field')}</span>;
-  }
-
-  const generateTotp = (fieldId: string, secret: string, label: string) => {
+    if (busy) return
+    const confirmed = await confirm(t('accounts.delete_confirm.message'), { title: t('accounts.delete_confirm.title'), kind: 'warning' })
+    if (!confirmed) return
+    setBusy("delete")
     try {
-      const totp = new OTPAuth.TOTP({
-        issuer: "AccMan",
-        label: label,
-        algorithm: "SHA1",
-        digits: 6,
-        period: 30,
-        secret: secret,
-      });
-      const token = totp.generate();
-      setGeneratedTokens(prev => ({ ...prev, [fieldId]: token }));
-
-      setTimeout(() => {
-        setGeneratedTokens(prev => ({ ...prev, [fieldId]: null }));
-      }, 30000);
-
-    } catch (error) {
-      console.error("Error generating TOTP:", error);
-      setGeneratedTokens(prev => ({ ...prev, [fieldId]: "Error" }));
+      await deleteAccount(account.id)
+      navigate('/accounts')
+    } catch {
+      // Error toast shown by the API layer.
+    } finally {
+      setBusy(null)
     }
   }
+
+  const handleTogglePin = async () => {
+    if (busy) return
+    setBusy("pin")
+    try {
+      await setPinned("account", account.id, !account.pinned)
+    } catch {
+      // Error toast shown by the API layer.
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleUnlinkService = async (service: Service) => {
+    if (busy) return
+    const confirmed = await confirm(t('account_view.unlink_confirm_message_named', { service: service.label }), {
+      title: t('account_view.unlink_confirm_title'),
+    })
+    if (!confirmed) return
+    setBusy(`unlink:${service.id}`)
+    try {
+      await unlinkServicesFromAccount(account.id, [service.id])
+    } catch {
+      // Error toast shown by the API layer.
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const toggleServiceOpen = (serviceId: string, open: boolean) => {
+    setOpenServices((prev) => ({ ...prev, [serviceId]: open }))
+  }
+
+  const allOpen = linkedServices.length > 0 && linkedServices.every((s) => openServices[s.id])
+  const setAllOpen = (open: boolean) => {
+    setOpenServices(Object.fromEntries(linkedServices.map((s) => [s.id, open])))
+  }
+
+  const pinLabel = account.pinned ? t('accounts.pin.unpin') : t('accounts.pin.pin')
 
   return (
     <div className="p-6 space-y-6">
-      {/* Back Button */}
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={() => navigate('/accounts')}
-          className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-white">{account.label}</h1>
-          <div className="flex flex-wrap gap-2 mt-1">
-            {account.tags.map((tag) => (
-              <Badge key={tag} className="bg-blue-600 text-white text-xs">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Account Header */}
+      {/* Header: back, label, tags, actions */}
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-3xl font-bold text-white mb-2">{account.label}</CardTitle>
-              <div className="flex flex-wrap gap-2">
-                {account.tags.map((tag) => (
-                  <Badge key={tag} className="bg-blue-600 text-white">
-                    {tag}
-                  </Badge>
-                ))}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => void navigateAway('/accounts')}
+                aria-label={t('account_view.back_to_accounts')}
+                title={t('account_view.back_to_accounts')}
+                className="shrink-0 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  {account.pinned && <Pin className="w-5 h-5 text-yellow-400 shrink-0 fill-yellow-400/30" aria-label={t('accounts.pin.pinned')} />}
+                  <CardTitle className="text-3xl font-bold text-white break-words">{account.label}</CardTitle>
+                </div>
+                {account.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {account.tags.map((tag) => (
+                      <Badge key={tag} className="bg-blue-600 text-white">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {(account.createdAt > 0 || account.updatedAt > 0) && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    {account.createdAt > 0 && t('account_view.created_at', { date: formatTimestamp(account.createdAt) })}
+                    {account.createdAt > 0 && account.updatedAt > 0 && " · "}
+                    {account.updatedAt > 0 && t('account_view.updated_at', { date: formatTimestamp(account.updatedAt) })}
+                  </p>
+                )}
               </div>
             </div>
-            <div className="flex gap-2">
-              {/* Prev/Next navigation on the right side of header */}
+            <div className="flex items-center gap-2 shrink-0">
+              <ListPager
+                neighbors={neighbors}
+                onNavigate={(accountId) => void goToAccount(accountId)}
+                previousLabel={t('account_view.nav.previous')}
+                nextLabel={t('account_view.nav.next')}
+                positionLabel={t(neighbors.unfiltered ? 'account_view.nav.position_unfiltered' : 'account_view.nav.position', {
+                  current: neighbors.index + 1,
+                  total: neighbors.total,
+                })}
+                hotkeysEnabled={!isLinkModalOpen && !isEditModalOpen && !isCreateServiceModalOpen && serviceToEdit === null}
+              />
+              {neighbors.index !== -1 && <div className="w-px h-6 bg-gray-600" aria-hidden="true" />}
               <Button
                 variant="outline"
                 size="icon"
-                className="border-gray-600 text-gray-300 bg-transparent disabled:opacity-50"
-                onClick={() => prevAccountId && navigate(`/accounts/${prevAccountId}`)}
-                disabled={!prevAccountId}
-                aria-label="Previous"
-                title="Previous"
+                className={cn("border-gray-600 bg-transparent", account.pinned ? "text-yellow-400" : "text-gray-300")}
+                onClick={handleTogglePin}
+                disabled={busy === "pin"}
+                aria-pressed={account.pinned}
+                aria-label={pinLabel}
+                title={pinLabel}
               >
-                <ArrowLeft className="w-4 h-4" />
+                {account.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
               </Button>
               <Button
                 variant="outline"
-                size="icon"
-                className="border-gray-600 text-gray-300 bg-transparent disabled:opacity-50"
-                onClick={() => nextAccountId && navigate(`/accounts/${nextAccountId}`)}
-                disabled={!nextAccountId}
-                aria-label="Next"
-                title="Next"
+                className="border-gray-600 text-gray-300 bg-transparent"
+                onClick={() => setIsEditModalOpen(true)}
               >
-                <ArrowRight className="w-4 h-4" />
+                <Edit className="w-4 h-4 mr-2" />
+                {t('common.edit')}
               </Button>
-              <div className="w-px h-6 bg-gray-600" />
-               <Button 
-                 variant="outline" 
-                 className="border-gray-600 text-gray-300 bg-transparent"
-                 onClick={handleEditAccount}
-               >
-                 <Edit className="w-4 h-4 mr-2" />
-                 {t('common.edit')}
-               </Button>
-               <Button
-                 variant="outline"
-                 className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white bg-transparent"
-                 onClick={handleDeleteAccount}
-               >
-                 <Trash2 className="w-4 h-4 mr-2" />
-                 {t('common.delete')}
-               </Button>
+              <Button
+                variant="outline"
+                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white bg-transparent"
+                onClick={handleDeleteAccount}
+                disabled={busy === "delete"}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {t('common.delete')}
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -276,33 +264,54 @@ export default function AccountView() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-white">{t('account_view.notes.title')}</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if(editingNotes) {
-                    handleSaveNotes();
-                } else {
-                    setEditingNotes(true)
-                }
-              }}
-              className="border-gray-600 text-gray-300"
-            >
-              {editingNotes ? <Save className="w-4 h-4 mr-2" /> : <Edit className="w-4 h-4 mr-2" />}
-              {editingNotes ? t('common.save') : t('common.edit')}
-            </Button>
+            {editingNotes ? (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => void cancelEditingNotes()} disabled={savingNotes} className="border-gray-600 text-gray-300">
+                  <X className="w-4 h-4 mr-2" />
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveNotes}
+                  disabled={savingNotes}
+                  className="bg-gradient-to-r from-blue-600 to-purple-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {savingNotes ? t('account_view.notes.saving') : t('common.save')}
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={startEditingNotes} className="border-gray-600 text-gray-300">
+                <Edit className="w-4 h-4 mr-2" />
+                {t('common.edit')}
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
           {editingNotes ? (
             <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              value={notesDraft}
+              onChange={(e) => setNotesDraft(e.target.value)}
+              onKeyDown={(e) => {
+                // Keys that confirm or cancel an IME composition belong to the IME.
+                if (e.nativeEvent.isComposing || e.keyCode === 229) return
+                if (e.key === "Escape") {
+                  e.preventDefault()
+                  void cancelEditingNotes()
+                } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault()
+                  void handleSaveNotes()
+                }
+              }}
               placeholder={t('account_view.notes.placeholder')}
+              aria-label={t('account_view.notes.title')}
+              disabled={savingNotes}
+              autoFocus
               className="bg-gray-700 border-gray-600 text-white min-h-32"
             />
           ) : (
-            <div className="text-gray-300 whitespace-pre-wrap min-h-[50px]">
+            <div className="text-gray-300 whitespace-pre-wrap [overflow-wrap:anywhere] min-h-[50px]">
               {account.notes || <span className="text-gray-500 italic">{t('account_view.notes.no_notes')}</span>}
             </div>
           )}
@@ -312,10 +321,15 @@ export default function AccountView() {
       {/* Linked Services */}
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-white">{t('account_view.services.title', { count: linkedServices.length })}</CardTitle>
-            <div className="flex gap-2">
-              <Button 
+            <div className="flex flex-wrap gap-2">
+              {linkedServices.length > 1 && (
+                <Button variant="ghost" className="text-gray-300 hover:text-white" onClick={() => setAllOpen(!allOpen)}>
+                  {allOpen ? t('account_view.services.collapse_all') : t('account_view.services.expand_all')}
+                </Button>
+              )}
+              <Button
                 variant="outline"
                 className="border-gray-600 text-gray-300 bg-transparent"
                 onClick={() => setIsCreateServiceModalOpen(true)}
@@ -333,110 +347,95 @@ export default function AccountView() {
         <CardContent className="space-y-4">
           {linkedServices.length > 0 ? (
             linkedServices.map((service) => {
-              const serviceType = getServiceType(service.serviceTypeId)
-              const isOpen = openServices[service.id]
+              const serviceType = findServiceType(vault?.serviceTypes, service.serviceTypeId)
+              const isOpen = !!openServices[service.id]
+              const title = getServiceTitle(service, serviceType)
+              // Filled fields, plus required ones that are empty (shown as missing).
+              const fields = (serviceType?.fields ?? []).filter((field) => !!service.data[field.key] || field.required)
 
               return (
-                <Collapsible key={service.id} open={isOpen} onOpenChange={() => toggleServiceOpen(service.id)}>
-                  <CollapsibleTrigger asChild>
-                    <Card className="bg-gray-700 border-gray-600 cursor-pointer hover:bg-gray-650 transition-colors">
-                      <CardHeader className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-700 rounded-lg flex items-center justify-center">
-                              <span className="text-white font-bold">{serviceType?.name.charAt(0) || "S"}</span>
-                            </div>
-                            <div>
-                              <h3 className="text-white font-medium">{service.label}</h3>
-                              <p className="text-gray-400 text-sm">{serviceType?.name}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-blue-400" onClick={(e) => { e.stopPropagation(); handleEditService(service); }}>
-                                <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-red-400" onClick={(e) => { e.stopPropagation(); handleUnlinkService(service.id); }}>
-                                <Unlink className="w-4 h-4" />
-                            </Button>
-                            {isOpen ? (
-                              <ChevronDown className="w-5 h-5 text-gray-400" />
-                            ) : (
-                              <ChevronRight className="w-5 h-5 text-gray-400" />
-                            )}
-                          </div>
+                <Collapsible key={service.id} open={isOpen} onOpenChange={(open) => toggleServiceOpen(service.id, open)}>
+                  <div className="flex items-center gap-2 rounded-lg border border-gray-600 bg-gray-700 p-3 hover:bg-gray-650 transition-colors">
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex flex-1 min-w-0 items-center gap-3 text-left rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      >
+                        {isOpen ? (
+                          <ChevronDown className="w-5 h-5 text-gray-400 shrink-0" aria-hidden="true" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-gray-400 shrink-0" aria-hidden="true" />
+                        )}
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-700 rounded-lg flex items-center justify-center shrink-0">
+                          <span className="text-white font-bold" aria-hidden="true">{serviceType?.name.charAt(0) || "S"}</span>
                         </div>
-                      </CardHeader>
-                    </Card>
-                  </CollapsibleTrigger>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            {service.pinned && <Pin className="w-3.5 h-3.5 text-yellow-400 shrink-0" aria-label={t('accounts.pin.pinned')} />}
+                            <h3 className="text-white font-medium truncate">{title}</h3>
+                          </div>
+                          <p className="text-gray-400 text-sm truncate">{serviceType?.name ?? t('account_view.services.unknown_type')}</p>
+                        </div>
+                      </button>
+                    </CollapsibleTrigger>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-gray-400 hover:text-white"
+                        onClick={() => void navigateAway(`/services/${service.id}`)}
+                        aria-label={t('account_view.services.open', { service: title })}
+                        title={t('account_view.services.open', { service: title })}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-gray-400 hover:text-blue-400"
+                        onClick={() => setServiceToEdit(service)}
+                        aria-label={t('account_view.services.edit', { service: title })}
+                        title={t('account_view.services.edit', { service: title })}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-gray-400 hover:text-red-400"
+                        onClick={() => handleUnlinkService(service)}
+                        disabled={busy === `unlink:${service.id}`}
+                        aria-label={t('account_view.services.unlink', { service: title })}
+                        title={t('account_view.services.unlink', { service: title })}
+                      >
+                        <Unlink className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
                   <CollapsibleContent>
                     <Card className="bg-gray-750 border-gray-600 mt-2">
                       <CardContent className="pt-4">
-                        <div className="space-y-4">
-                          {serviceType?.fields.map((field) => {
-                            const value = service.data[field.key] || ""
-                            if (!value) return null
-                            
-                            if (field.type === 'linked_service') {
-                                const linkedService = allServices.find(s => s.id === value);
-                                return linkedService ? (
-                                  <div className="p-3" key={field.id}>
-                                      <label className="text-sm font-medium text-gray-300 block mb-1">{field.label}</label>
-                                      <LinkedServiceDetail service={linkedService} />
-                                  </div>
-                                ) : null;
-                            }
-
-                            return (
-                              <div
-                                key={field.id}
-                                className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
-                              >
-                                <div className="flex-1">
-                                  <label className="text-sm font-medium text-gray-300 block mb-1">{field.label}</label>
-                                  <div className="text-white font-mono">
-                                    {generatedTokens[field.id] ? (
-                                      <div className="flex items-center gap-2">
-                                        <span className="tracking-widest text-lg text-green-400">{generatedTokens[field.id]}</span>
-                                      </div>
-                                    ) : (
-                                      renderFieldValue(field, value)
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 ml-4">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => toggleSecretVisibility(field.id)}
-                                    className="text-gray-400 hover:text-white"
-                                  >
-                                    {visibleSecrets[field.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                  </Button>
-                                  {value && (
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => copyToClipboard(value)}
-                                      className="text-gray-400 hover:text-white"
-                                    >
-                                      <Copy className="w-4 h-4" />
-                                    </Button>
-                                  )}
-                                  {field.type === '2fa' && value && (
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => generateTotp(field.id, value, service.label)}
-                                      className="text-gray-400 hover:text-white"
-                                    >
-                                      {generatedTokens[field.id] ? <RefreshCw className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
+                        {fields.length > 0 ? (
+                          <div className="space-y-3">
+                            {fields.map((field) => (
+                              <FieldValueRow
+                                key={`${service.id}:${field.id}`}
+                                field={field}
+                                value={service.data[field.key]}
+                                serviceLabel={title}
+                                size="md"
+                                renderLinkedService={(_linkedId, linked) => (
+                                  <LinkedServiceDetail
+                                    service={linked}
+                                    onOpen={(target) => void navigateAway(`/services/${target.id}`)}
+                                  />
+                                )}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm italic text-gray-500">{t('account_view.services.no_values')}</p>
+                        )}
                       </CardContent>
                     </Card>
                   </CollapsibleContent>
@@ -445,13 +444,14 @@ export default function AccountView() {
             })
           ) : (
             <div className="text-center py-8 text-gray-400">
-              <Link className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <Link className="w-12 h-12 mx-auto mb-4 opacity-50" aria-hidden="true" />
               <p className="text-lg mb-2">{t('account_view.services.no_services')}</p>
               <p className="text-sm">{t('account_view.services.no_services_description')}</p>
             </div>
           )}
         </CardContent>
       </Card>
+
       <LinkNewServicesModal
         isOpen={isLinkModalOpen}
         onClose={() => setIsLinkModalOpen(false)}
@@ -462,25 +462,16 @@ export default function AccountView() {
         onClose={() => setIsEditModalOpen(false)}
         accountToEdit={account}
       />
+      {/* Toasts for these come from the store (service_added_and_linked / service_updated). */}
       <CreateServiceModal
         isOpen={isCreateServiceModalOpen}
         onClose={() => setIsCreateServiceModalOpen(false)}
-        accountId={account?.id}
-        onSaved={() => {
-          // Service is automatically linked via account_id parameter
-          toast.success(t('modals.link_new.service_created_and_linked'))
-        }}
+        accountId={account.id}
       />
       <CreateServiceModal
-        isOpen={isEditServiceModalOpen}
-        onClose={() => {
-          setIsEditServiceModalOpen(false);
-          setServiceToEdit(null);
-        }}
+        isOpen={serviceToEdit !== null}
+        onClose={() => setServiceToEdit(null)}
         serviceToEdit={serviceToEdit}
-        onSaved={() => {
-          toast.success(t('common.saved'));
-        }}
       />
     </div>
   )

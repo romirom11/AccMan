@@ -9,16 +9,22 @@
     "creating": "Creating...",
     "loading": "Loading...",
     "view": "View",
-    "copied_to_clipboard": "Copied to clipboard"
+    "copied_to_clipboard": "Copied to clipboard",
+    "saved": "Saved",
+    "close": "Close"
   },
   "lock_screen": {
     "title": "Unlock Vault",
     "password_label": "Master Password",
     "password_placeholder": "Enter master password",
     "unlock_button": "Unlock",
-    "retry_button": "Try Again"
+    "unlocking": "Unlocking…",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
+    "caps_lock_on": "Caps Lock is on",
+    "backup_hint": "You can restore the vault from an automatic backup.",
+    "restore_from_backup": "Restore from backup…"
   },
-  "setup_title": "Welcome to AccMan",
   "setup": {
     "main_title": "Initial Setup",
     "main_description": "Let's get your vault ready.",
@@ -31,22 +37,33 @@
     },
     "services": {
       "title": "Select Default Services",
-      "description": "Choose which service templates you want to have available from the start. You can add new services later."
+      "description": "Choose which service templates you want to have available from the start. You can add new services later.",
+      "load_failed": "Could not load the service templates.",
+      "select_all": "Select all",
+      "select_none": "Clear selection",
+      "none_selected": "No templates selected. You can create service types later."
     },
     "password": {
       "title": "Set Master Password",
       "description": "This password will protect all your data. Choose a strong one.",
       "master_password": "Master Password",
       "confirm_password": "Confirm Password",
-      "autolock_timer": "Auto-lock timer"
+      "autolock_timer": "Auto-lock timer",
+      "min_length_hint": "At least {{count}} characters."
+    },
+    "creating": "Creating vault…",
+    "vault_exists_redirect": "A vault already exists on this device. Unlock it with its master password.",
+    "errors": {
+      "create_failed": "The vault could not be created."
     }
   },
   "sidebar": {
-    "search_placeholder": "Search... (⌘+K)",
+    "search_placeholder": "Search…",
     "search": {
       "no_results": "No results found",
       "accounts": "Accounts",
-      "services": "Services"
+      "services": "Services",
+      "clear": "Clear search"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -59,7 +76,10 @@
       "active": "Auto-lock in",
       "disabled": "Auto-lock disabled"
     },
-    "lock_button": "Lock Now"
+    "lock_button": "Lock Now",
+    "command_palette": "Quick search",
+    "command_palette_hint": "Open the command palette ({{shortcut}})",
+    "subtitle": "Manager"
   },
   "dashboard": {
     "welcome": "Welcome!",
@@ -67,20 +87,41 @@
     "quick_actions": {
       "title": "Quick Actions",
       "create_account": "Create Account",
-      "create_service": "Create Service"
+      "create_service": "Create Service",
+      "import_services": "Import services",
+      "search": "Search"
     },
     "stats": {
       "total_accounts": "Total Accounts",
       "total_services": "Total Services",
-      "autolock": "Auto-lock"
+      "autolock": "Auto-lock",
+      "service_types": "Service types"
     },
     "recent_accounts": {
-      "title": "Recently Viewed Accounts",
-      "description": "Your latest active accounts.",
+      "title": "Recently updated accounts",
+      "description": "Accounts you changed most recently.",
       "services_count_one": "{{count}} service",
       "services_count_other": "{{count}} services",
       "no_accounts": "No accounts yet.",
       "create_first": "Create your first account"
+    },
+    "view_all": "View all",
+    "pinned": {
+      "badge": "Pinned",
+      "title": "Pinned",
+      "description": "Accounts and services you pinned.",
+      "accounts": "Accounts ({{count}})",
+      "services": "Services ({{count}})",
+      "no_accounts": "No pinned accounts.",
+      "no_services": "No pinned services.",
+      "empty": "Nothing pinned yet. Pin accounts or services in their lists to keep them here."
+    },
+    "recent_services": {
+      "title": "Recently updated services",
+      "description": "Services you changed most recently.",
+      "no_services": "No services yet.",
+      "create_first": "Add your first service",
+      "unknown_type": "Unknown type"
     }
   },
   "accounts": {
@@ -99,6 +140,34 @@
     "delete_confirm": {
       "title": "Delete Account",
       "message": "Are you sure you want to delete this account?"
+    },
+    "bulk_create_button": "Bulk Create",
+    "clear_filters": "Clear filters",
+    "sort": {
+      "none": "Sort by name",
+      "asc": "Sorted A–Z",
+      "desc": "Sorted Z–A"
+    },
+    "view": {
+      "grid": "Grid view",
+      "list": "List view"
+    },
+    "pin": {
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "pinned": "Pinned"
+    },
+    "bulk": {
+      "select": "Select",
+      "exit_select": "Done selecting",
+      "selected_count": "{{count}} selected",
+      "hint": "Shift+click selects a range, {{shortcut}} selects all",
+      "select_all": "Select all ({{count}})",
+      "select_none": "Clear selection",
+      "delete": "Delete ({{count}})",
+      "delete_confirm_title": "Delete accounts",
+      "delete_confirm_message_one": "Delete {{count}} account? Its services are kept.",
+      "delete_confirm_message_other": "Delete {{count}} accounts? Their services are kept."
     }
   },
   "services": {
@@ -152,23 +221,98 @@
       "step3_title": "Step 3: Preview & Confirm",
       "step3_desc": "Review the data before importing. Only the first 5 rows are shown.",
       "confirm_import": "Confirm Import",
-      "success_toast_v2": "Successfully imported {{count}} services. Skipped {{skipped}} rows.",
-      "skipped_description": "Skipped rows due to missing linked services or duplicates.",
       "errors": {
         "select_main_type": "Please select the primary service type for this import.",
-        "select_label_column": "Please select a column to use for the service label."
+        "select_label_column": "Please select a column to use for the service label.",
+        "separator_required": "Enter a separator.",
+        "invalid_start_number": "The start number must be a whole number of 0 or more.",
+        "file_read_failed": "Could not read the file."
+      },
+      "back": "Back",
+      "separator_tab": "Tab",
+      "separator_hint": "Any text, also several characters (e.g. \"::\" or \" | \"). Type \\t for a tab.",
+      "last_column_rest": "Last column takes the rest of the line",
+      "last_column_rest_hint": "Use this when the last value can contain the separator, e.g. proxy strings, URLs or passwords: each line is split into at most the given number of columns.",
+      "column_limit": "Number of columns",
+      "column_limit_auto": "Auto ({{n}})",
+      "parsed_summary": "Rows: {{rows}} · Columns: {{columns}}",
+      "too_many_columns": "Only the first {{n}} columns can be mapped. Check the separator.",
+      "column_n": "Column {{n}}",
+      "column_with_sample": "{{column}} — {{sample}}",
+      "label_column_hint": "The label column can also be mapped to a field below (e.g. the email column as the label and as the Email field).",
+      "generate_hint": "Each label is the pattern with %n% replaced by a number (without %n%, the number is added at the end), counting from the start number. Numbers already used by services of this type are skipped.",
+      "label_badge": "Label",
+      "sample": "e.g. {{value}}",
+      "sample_empty": "(empty in the first row)",
+      "linked_rule": "Linked fields ({{fields}}) are matched to an existing service of the target type: first by service name, then by any non-secret field value (e.g. email or username). Case and surrounding spaces are ignored. Rows that match no service or more than one are skipped.",
+      "step3_desc_v2": "Review the services exactly as they will be created (first {{n}} shown). Secret values are hidden.",
+      "preview": {
+        "row": "Line",
+        "label": "Label",
+        "nothing": "No row can be imported with the current settings."
+      },
+      "summary": {
+        "to_import_one": "{{count}} service will be imported",
+        "to_import_other": "{{count}} services will be imported",
+        "skipped_one": "{{count}} row will be skipped",
+        "skipped_other": "{{count}} rows will be skipped",
+        "reason_missing_label_one": "{{count}} without a label",
+        "reason_missing_label_other": "{{count}} without a label",
+        "reason_duplicate_label_one": "{{count}} with a label that already exists in this type",
+        "reason_duplicate_label_other": "{{count}} with a label that already exists in this type",
+        "reason_unresolved_link_one": "{{count}} with a linked service that was not found",
+        "reason_unresolved_link_other": "{{count}} with a linked service that was not found",
+        "reason_ambiguous_link_one": "{{count}} with a linked value that matches several services",
+        "reason_ambiguous_link_other": "{{count}} with a linked value that matches several services",
+        "missing_required_one": "{{count}} service will be imported with empty required fields",
+        "missing_required_other": "{{count}} services will be imported with empty required fields",
+        "missing_required_hint": "Empty required fields do not block the import; you can fill them in later.",
+        "missing_fields": "{{label}}: {{fields}}"
+      },
+      "skip_reasons": {
+        "missing_label": "the label is empty",
+        "duplicate_label": "a service named \"{{value}}\" already exists in this type or earlier in the file",
+        "unresolved_link": "{{field}}: no service matches \"{{value}}\"",
+        "ambiguous_link": "{{field}}: \"{{value}}\" matches more than one service"
+      },
+      "line_n": "Line {{n}}:",
+      "and_more_one": "…and {{count}} more",
+      "and_more_other": "…and {{count}} more",
+      "importing": "Importing…",
+      "confirm_import_count_one": "Import {{count}} service",
+      "confirm_import_count_other": "Import {{count}} services",
+      "result_toast_one": "Imported {{count}} service",
+      "result_toast_other": "Imported {{count}} services",
+      "result_toast_skipped_one": "{{count}} row skipped",
+      "result_toast_skipped_other": "{{count}} rows skipped",
+      "result": {
+        "title": "Import finished",
+        "imported_one": "{{count}} service imported.",
+        "imported_other": "{{count}} services imported.",
+        "skipped_one": "{{count}} row skipped.",
+        "skipped_other": "{{count}} rows skipped.",
+        "warnings_one": "{{count}} service has empty required fields.",
+        "warnings_other": "{{count}} services have empty required fields.",
+        "import_more": "Import more",
+        "open_services": "Open services"
       }
     },
     "fields": {
-        "ignore": "Ignore",
-        "tags": "Tags",
-        "fields": "Fields"
+      "ignore": "Ignore",
+      "tags": "Tags",
+      "fields": "Fields"
+    },
+    "sort": {
+      "by_name": "By name",
+      "by_type": "By type",
+      "no_sort": "No sorting",
+      "ascending": "Ascending",
+      "descending": "Descending"
     }
   },
   "settings": {
     "title": "Settings",
-    "description": "Manage security and application settings.",
-    "save_button": "Save Changes",
+    "description": "Security, backups and application settings. Preferences are saved as soon as you change them.",
     "notifications": {
       "saved": "Settings saved successfully."
     },
@@ -182,7 +326,7 @@
     },
     "autolock": {
       "label": "Auto-lock time",
-      "description": "Automatically lock the vault after a period of inactivity. Select 0 to disable.",
+      "description": "Lock the vault after this much time without keyboard or mouse activity. Time the computer spends asleep counts as inactivity.",
       "disabled": "Disabled",
       "minutes_one": "{{count}} minute",
       "minutes_other": "{{count}} minutes",
@@ -191,50 +335,80 @@
     },
     "password": {
       "title": "Change Master Password",
-      "description": "This feature is not yet implemented.",
+      "description": "Choose a new password to protect this vault. Exports you made earlier keep the password they were exported with, and automatic backups keep the master password that was valid when they were taken.",
       "current": "Current Password",
       "new": "New Password",
       "confirm": "Confirm Password",
-      "change_button": "Change Password"
+      "change_button": "Change Password",
+      "show": "Show password",
+      "hide": "Hide password",
+      "changing": "Changing…",
+      "errors": {
+        "current_required": "Enter your current master password.",
+        "wrong_current": "The current master password is incorrect.",
+        "same_as_current": "The new password must be different from the current one."
+      }
     },
     "backup": {
-      "title": "Backup & Export",
-      "description": "Create backups and export/import your vault data.",
+      "title": "Export & Import",
+      "description": "Export the vault to an encrypted file (for example to keep it on another drive) or import data from such a file.",
       "export_button": "Export Vault",
       "import_button": "Import Vault",
       "export_dialog": {
         "title": "Export Vault",
-        "description": "Create an encrypted backup of your vault.",
-        "password_label": "Export Password",
-        "password_placeholder": "Enter password for backup file",
-        "confirm_password_label": "Confirm Password",
-        "confirm_password_placeholder": "Confirm password",
+        "description": "Saves an encrypted copy of the whole vault to a file of your choice. The file is read back and checked after writing.",
+        "password_label": "Export password",
+        "password_placeholder": "At least 8 characters",
+        "confirm_password_label": "Confirm export password",
+        "confirm_password_placeholder": "Repeat the export password",
         "export_button": "Export",
-        "default_filename": "AccMan-Vault-Backup.json"
+        "password_hint": "This password encrypts the exported file and is required to import it later. It can differ from your master password. Keep it safe: it cannot be recovered.",
+        "exporting": "Exporting…"
       },
       "import_dialog": {
         "title": "Import Vault",
-        "description": "Import vault data from an encrypted backup file.",
-        "file_label": "Backup File",
+        "description": "Import service types, services and accounts from a file created with Export.",
+        "file_label": "Export file",
         "select_file_button": "Select File",
-        "password_label": "Import Password",
-        "password_placeholder": "Enter backup file password",
+        "password_label": "File password",
+        "password_placeholder": "Password of the exported file",
         "strategy_label": "Import Strategy",
-        "strategy_merge": "Merge with current vault",
-        "strategy_replace": "Replace current vault",
+        "strategy_merge": "Merge into the current vault",
+        "strategy_replace": "Replace the current vault data",
         "import_button": "Import",
         "warnings": {
-          "replace": "Warning: This will completely replace your current vault data.",
-          "merge": "Note: Existing data with matching IDs will be preserved."
+          "replace": "All service types, services and accounts in this vault are replaced by the ones from the file. Your current settings and master password are kept. A backup of the current vault is taken first, so you can restore it under Automatic backups.",
+          "merge": "Adds the service types, services and accounts that are not in this vault yet. Items that already exist here (same ID) are kept unchanged and skipped; an existing service type only gains fields that it is missing. Your settings and master password do not change."
+        },
+        "no_file": "No file selected",
+        "password_hint": "Use the export password chosen when the file was created. Files exported by older AccMan versions open with the master password that was in use at the time of the export.",
+        "importing": "Importing…",
+        "done_button": "Done",
+        "summary": {
+          "title": "Import completed",
+          "service_types_added": "Service types added",
+          "service_types_merged": "Service types extended with new fields",
+          "services_added": "Services added",
+          "services_skipped": "Services skipped (already present)",
+          "accounts_added": "Accounts added",
+          "accounts_skipped": "Accounts skipped (already present)",
+          "skipped_note": "Skipped items already existed in this vault with the same ID and were left unchanged."
         }
       },
       "errors": {
-        "passwords_dont_match": "Passwords do not match",
-        "password_required": "Password is required",
-        "file_required": "Please select a backup file",
-        "invalid_file": "Invalid backup file format",
-        "wrong_password": "Invalid password for this backup file"
-      }
+        "password_required": "Enter the password of the file.",
+        "file_required": "Select a file to import.",
+        "invalid_file": "This file is not a valid AccMan export or it is damaged.",
+        "wrong_password": "This password does not open the file. Use the export password, or for files exported by older versions, the master password from the time of the export.",
+        "export_target": {
+          "data_folder": "This location is inside AccMan's data folder (where the vault and its automatic backups live). Choose a location outside it.",
+          "not_export_file": "The chosen file already exists and is not an AccMan export, so it was not overwritten. Choose another file name.",
+          "folder_missing": "The chosen folder does not exist. Choose another location.",
+          "is_folder": "The chosen path is a folder. Choose a file name.",
+          "not_absolute": "The chosen path is not a complete file path. Choose the location again."
+        }
+      },
+      "file_filter_name": "AccMan export"
     },
     "danger": {
       "title": "Danger Zone",
@@ -242,24 +416,79 @@
       "delete_title": "Delete Vault",
       "delete_description": "This action is irreversible. All your data will be lost forever.",
       "delete_button": "Delete Vault"
+    },
+    "about": {
+      "title": "About AccMan",
+      "description": "Information about the application",
+      "developer": "Developer",
+      "repository": "Repository",
+      "version": "Version",
+      "copy_link": "Copy link: {{label}}",
+      "links_hint": "Use the copy buttons and open the links in your browser.",
+      "check_updates": "Check for updates",
+      "checking_updates": "Checking for updates…"
+    },
+    "clipboard": {
+      "label": "Clear clipboard after",
+      "description": "Passwords, keys and 2FA codes you copy are cleared from the clipboard after this time if it still holds them. When the vault locks or AccMan closes, anything AccMan copied is cleared too if it is still on the clipboard. “Never” turns off only the timed clearing.",
+      "never": "Never",
+      "seconds_one": "{{count}} second",
+      "seconds_other": "{{count}} seconds",
+      "history_note": "Clipboard history and cloud clipboard (for example Win+V on Windows) may keep their own copy, which AccMan cannot remove. Turn them off if you copy secrets."
+    },
+    "backups": {
+      "title": "Automatic backups",
+      "description": "AccMan keeps encrypted backup copies of your vault file in a backups folder next to it. A backup is taken:",
+      "when_session": "before the first change after each unlock;",
+      "when_password": "before the master password is changed;",
+      "when_import": "before an import or a restore from a backup;",
+      "when_upgrade": "before the vault file is upgraded to a newer format.",
+      "retention_one": "The newest {{count}} backup is kept; older ones are deleted automatically.",
+      "retention_other": "The newest {{count}} backups are kept; older ones are deleted automatically.",
+      "list_label": "Backups",
+      "count_one": "{{count}} backup",
+      "count_other": "{{count}} backups",
+      "empty": "No backups yet. One is taken at each moment listed above. Changes made right after creating the vault, before it is locked for the first time, do not trigger one.",
+      "refresh": "Refresh list",
+      "restore_button": "Restore from backup…",
+      "restore_warning": "Restoring replaces the current vault with the backup. Each backup opens with the master password that was valid when it was taken, and that password becomes your master password after restoring. The current vault is backed up first.",
+      "export_note": "Automatic backups are stored on the same disk as the vault. Use Export to keep a copy somewhere else."
     }
   },
   "account_view": {
     "not_found": "Account not found",
     "unlink_confirm_message": "Are you sure you want to unlink this service?",
     "unlink_confirm_title": "Confirmation",
-    "empty_field": "Not filled",
     "notes": {
       "title": "Notes",
       "placeholder": "Add notes about this account...",
-      "no_notes": "No notes available"
+      "no_notes": "No notes available",
+      "saving": "Saving…",
+      "discard_confirm": "Discard your unsaved changes to the notes?"
     },
     "services": {
       "title": "Services ({{count}})",
       "link_button": "Link Service",
       "no_services": "No linked services",
-      "no_services_description": "Link services to this account."
-    }
+      "no_services_description": "Link services to this account.",
+      "expand_all": "Expand all",
+      "collapse_all": "Collapse all",
+      "open": "Open {{service}}",
+      "edit": "Edit {{service}}",
+      "unlink": "Unlink {{service}}",
+      "unknown_type": "Unknown service type",
+      "no_values": "No values filled in."
+    },
+    "back_to_accounts": "Back to accounts",
+    "nav": {
+      "previous": "Previous account",
+      "next": "Next account",
+      "position": "Account {{current}} of {{total}} in the list",
+      "position_unfiltered": "Account {{current}} of {{total}}: the list filters hide this account, so all accounts are used"
+    },
+    "created_at": "Created {{date}}",
+    "updated_at": "Updated {{date}}",
+    "unlink_confirm_message_named": "Unlink “{{service}}” from this account? The service itself is kept."
   },
   "service_type_constructor": {
     "list_title": "Service Types",
@@ -274,10 +503,26 @@
     "create_button": "Create Type",
     "delete_confirm": {
       "title": "Delete Confirmation",
-      "message": "Are you sure you want to delete this service type? This action cannot be undone."
+      "message": "Are you sure you want to delete this service type? This action cannot be undone.",
+      "message_named": "Delete the service type \"{{name}}\"?",
+      "services_one": "{{count}} service of this type will be deleted with it, including its stored data and account links.",
+      "services_other": "{{count}} services of this type will be deleted with it, including their stored data and account links.",
+      "linked_fields_one": "{{count}} linked field in another type points to this type and will be removed with its values: {{fields}}.",
+      "linked_fields_other": "{{count}} linked fields in other types point to this type and will be removed with their values: {{fields}}.",
+      "irreversible": "This cannot be undone."
     },
     "errors": {
-      "name_id_required": "Service type name and ID are required."
+      "name_required": "Enter a name.",
+      "id_required": "Enter an ID.",
+      "id_invalid": "Use lowercase Latin letters, digits, '_' and '-' only.",
+      "id_taken": "A service type with this ID already exists.",
+      "field_label_required": "Enter a field name.",
+      "key_required": "Enter a key.",
+      "key_invalid": "Use lowercase Latin letters, digits and '_' only.",
+      "key_duplicate": "This key is used by another field.",
+      "linked_required": "Choose the service type to link to.",
+      "linked_missing": "The selected service type no longer exists.",
+      "fix_highlighted": "Fix the highlighted problems before saving."
     },
     "form": {
       "type_name": "Type Name",
@@ -292,19 +537,82 @@
       "required": "Required",
       "masked": "Masked",
       "no_fields": "No fields",
-      "no_fields_description": "Add fields for this service type."
+      "no_fields_description": "Add fields for this service type.",
+      "type_name_placeholder": "Discord Account",
+      "system_name_placeholder": "discord_account",
+      "system_name_hint_new": "Generated from the name. It cannot be changed after the type is created.",
+      "system_name_hint_existing": "The ID cannot be changed.",
+      "show_keys": "Show keys (advanced)",
+      "keys_hint": "A key identifies where a field's values are stored. Keys of new fields follow their name; renaming the key of a saved field moves its stored values to the new key.",
+      "add_field": "Add field",
+      "remove_field": "Remove field",
+      "move_up": "Move up",
+      "move_down": "Move down",
+      "key_display": "key: {{key}}",
+      "key_placeholder": "login",
+      "key_renamed_hint": "Saved as \"{{from}}\"; stored values will move to the new key.",
+      "masked_2fa_hint": "2FA keys are always masked."
     },
     "field_types": {
       "text": "Text",
       "secret": "Secret",
       "textarea": "Multiline Text",
       "linked_service": "Linked Service",
-      "2fa": "2FA Key"
+      "2fa": "2FA Key",
+      "url": "URL"
+    },
+    "services_count_one": "{{count}} service",
+    "services_count_other": "{{count}} services",
+    "used_by_one": "Used by {{count}} service",
+    "used_by_other": "Used by {{count}} services",
+    "id_label": "ID: {{id}}",
+    "unknown_type": "Unknown type",
+    "unsaved_changes": "Unsaved changes",
+    "discard_confirm": {
+      "title": "Discard changes?",
+      "message": "The service type has unsaved changes. Discard them?"
+    },
+    "remove_field_confirm": {
+      "title": "Remove field?",
+      "message_one": "\"{{field}}\" has a value in {{count}} service. When you save, that value is deleted, even if you add a new field with the same key.",
+      "message_other": "\"{{field}}\" has values in {{count}} services. When you save, those values are deleted, even if you add a new field with the same key."
+    },
+    "save_loss_confirm": {
+      "title": "Delete stored values?",
+      "intro": "Saving these changes deletes stored values:",
+      "link_one": "\"{{field}}\": {{count}} service has a value that is not a link to a \"{{target}}\" service. It will be cleared.",
+      "link_other": "\"{{field}}\": {{count}} services have values that are not links to a \"{{target}}\" service. They will be cleared.",
+      "reused_key_one": "\"{{field}}\" is a new field. The value of the removed field with the key {{key}} in {{count}} service is deleted, not moved to it.",
+      "reused_key_other": "\"{{field}}\" is a new field. The values of the removed field with the key {{key}} in {{count}} services are deleted, not moved to it.",
+      "question": "Save anyway?"
     }
   },
   "errors": {
     "passwords_do_not_match": "Passwords do not match.",
-    "password_too_short": "Password must be at least 8 characters long."
+    "password_too_short": "Password must be at least 8 characters long.",
+    "VAULT_LOCKED": "The vault is locked. Unlock it and try again.",
+    "VAULT_EXISTS": "A vault already exists on this device.",
+    "VAULT_NOT_FOUND": "No vault was found on this device.",
+    "VAULT_CORRUPTED": "The vault file is damaged and cannot be read.",
+    "UNSUPPORTED_VAULT_VERSION": "This vault file was created by a newer version of AccMan. Update the app to open it.",
+    "INVALID_PASSWORD": "Incorrect password.",
+    "PASSWORD_TOO_SHORT": "Password must be at least 8 characters long.",
+    "SERVICE_TYPE_EXISTS": "A service type with this ID already exists.",
+    "SERVICE_TYPE_NOT_FOUND": "Service type not found. It may have been deleted.",
+    "SERVICE_TYPE_IN_USE": "This service type is still used by services. Delete them first or delete them together with the type.",
+    "SERVICE_NOT_FOUND": "Service not found. It may have been deleted.",
+    "ACCOUNT_NOT_FOUND": "Account not found. It may have been deleted.",
+    "DUPLICATE_ID": "An item with this ID already exists.",
+    "VALIDATION": "Invalid data: {{message}}",
+    "BACKUP_NOT_FOUND": "Backup not found.",
+    "IO": "File operation failed: {{message}}",
+    "INTERNAL": "Internal error: {{message}}",
+    "EMAIL_UNSUPPORTED_PROVIDER": "This email provider is not supported. Set the IMAP host for this service.",
+    "EMAIL_CONNECTION": "Could not connect to the mail server.",
+    "EMAIL_AUTH": "The mail server rejected the email or password.",
+    "EMAIL_TIMEOUT": "The mail server did not respond in time.",
+    "EMAIL_PROTOCOL": "The mail server sent an unexpected response.",
+    "UNKNOWN": "Something went wrong."
   },
   "modals": {
     "create_account": {
@@ -320,7 +628,8 @@
       "tags_placeholder": "gaming, personal, main",
       "errors": {
         "label_required": "Account label is required."
-      }
+      },
+      "saving": "Saving…"
     },
     "create_service": {
       "create_title": "Create Service",
@@ -336,58 +645,67 @@
       "tags_placeholder": "work, personal",
       "2fa_placeholder": "Enter 2FA secret key",
       "create_new_service": "Create new",
-      "cancel_creation": "Cancel",
       "creating_new_service": "Creating new {{serviceName}}",
-      "service_name_label": "Service name",
       "service_name_placeholder": "Enter service name",
-      "tags_comma_separated": "Tags (comma-separated)",
       "service_name": "Service name",
       "search_services_placeholder": "Search services...",
       "no_services_found": "No services found.",
       "errors": {
-        "label_type_required": "Service label and type are required."
-      }
+        "required": "This field is required.",
+        "label_required": "Enter a label.",
+        "type_required": "Choose a service type.",
+        "fix_fields": "Fill in the required fields marked in red.",
+        "required_warning": "Required, but it was already empty. You can still save."
+      },
+      "saving": "Saving…",
+      "clear_link": "Remove link",
+      "totp_valid": "Valid 2FA secret",
+      "type_missing": "The type of this service no longer exists. Choose a type; values without a matching field will be removed.",
+      "linked_type_missing": "The service type this field links to no longer exists.",
+      "type_change_title": "Change service type?",
+      "type_change_message": "The new type has no fields for: {{fields}}. These values will be removed from the service.",
+      "created_with_linked": "Service created. New linked services: {{count}}.",
+      "partial_saved": "Some changes were already saved. Click Save to finish.",
+      "partial_link": "The service was created, but linking it to the account failed. Click Save to try again."
     },
     "bulk_link": {
       "title": "Link Services to Account",
       "description_one": "{{count}} service selected. Choose an account to link it to.",
       "description_other": "{{count}} services selected. Choose an account to link them to.",
       "account_label": "Account",
-      "account_placeholder": "Select an account...",
       "link_button": "Link",
-      "errors": {
-        "account_required": "Please select an account.",
-        "no_services": "No services selected to link."
-      }
+      "search_placeholder": "Search accounts…",
+      "no_accounts": "There are no accounts yet.",
+      "no_accounts_found": "No accounts found.",
+      "all_already_linked": "Already linked",
+      "some_already_linked": "{{count}} already linked",
+      "will_link": "Will link {{count}}; the rest are already linked to this account.",
+      "linking": "Linking…"
     },
     "link_service_to_account": {
       "title": "Link Service to Account",
       "description": "Select an account to link the service {{serviceName}} to.",
       "account_label": "Account",
-      "account_placeholder": "Select an account...",
       "search_placeholder": "Search accounts...",
       "link_button": "Link",
-      "success": "Service successfully linked to account!",
       "no_accounts_found": "No accounts found.",
       "no_available_accounts": "No available accounts to link to.",
-      "errors": {
-        "account_required": "Please select an account.",
-        "link_failed": "Error linking service to account."
-      }
+      "already_linked": "Already linked",
+      "linking": "Linking…"
     },
     "link_new": {
-      "title": "Link A Service",
+      "title": "Link Services",
       "description": "Select services to link to this account.",
-      "search_placeholder": "Search by label or tag...",
+      "search_placeholder": "Search by name, tag or field…",
       "filter_by_type": "Filter by service type",
       "all_types": "All Types",
-      "create_and_link_button": "Create & Link Service",
       "no_services_found": "No services found for current filters.",
       "link_button": "Link {{count}}",
-      "errors": {
-        "no_services": "Please select at least one service to link."
-      },
-      "service_created_and_linked": "Service created and linked"
+      "available_count": "Available: {{count}}",
+      "select_all": "Select all shown",
+      "deselect_all": "Deselect all shown",
+      "all_linked": "All services are already linked to this account.",
+      "linking": "Linking…"
     },
     "bulk_create_accounts": {
       "title": "Bulk Create Accounts",
@@ -410,16 +728,35 @@
         "select_service_type": "Select service type...",
         "name_template": "Service Name Template",
         "name_template_help": "Use %n% as placeholder for account number (e.g., TwWork%n% → TwWork1, TwWork2, ...)",
-        "tags": "Service Tags (comma-separated)",
-        "tags_placeholder": "bulk, auto-generated",
-        "add_service": "Add Service Configuration"
+        "add_service": "Add Service Configuration",
+        "description": "Links each new account to an existing service of the chosen type whose name matches the template with the same number.",
+        "remove": "Remove {{name}}"
       },
       "errors": {
         "name_template_required": "Account name template is required.",
-        "invalid_count": "Number of accounts must be between 1 and 100.",
+        "invalid_count": "Enter a whole number from 1 to {{max}}.",
         "no_service_configs": "Please add at least one service configuration or disable service linking.",
         "service_type_required": "Service type is required for each service configuration.",
-        "service_name_template_required": "Service name template is required for each service configuration."
+        "service_name_template_required": "Service name template is required for each service configuration.",
+        "invalid_start": "Enter a whole number of 0 or more.",
+        "range_too_large": "The start number is too large for this many accounts."
+      },
+      "create_button": "Create {{count}}",
+      "placeholder_appended": "No %n% in the template: the number will be appended after a space.",
+      "preview": {
+        "title": "Preview",
+        "accounts": "Accounts ({{count}})",
+        "found": "found {{found}} of {{total}}",
+        "unavailable": "Fix the fields above to see the generated names."
+      },
+      "summary": {
+        "title": "Accounts created",
+        "created": "Accounts created",
+        "linked": "Services linked",
+        "unmatched": "Lookups without a match",
+        "unmatched_hint": "Some generated service names did not match any existing service, so those links were skipped. Check the service name templates and the service names.",
+        "create_more": "Create more",
+        "done": "Done"
       }
     }
   },
@@ -427,8 +764,6 @@
     "not_found": "Service not found",
     "delete_confirm_title": "Delete Service",
     "delete_confirm_message": "Are you sure you want to delete this service? This action cannot be undone.",
-    "empty_field": "Not set",
-    "required_field": "This field is required",
     "data": {
       "title": "Service Data"
     },
@@ -437,11 +772,45 @@
     },
     "linked_accounts": {
       "title": "Linked Accounts"
+    },
+    "back": "Back",
+    "back_to_services": "Back to services",
+    "unknown_type": "Unknown type",
+    "type_missing_hint": "The service type of this service no longer exists. Its stored values are shown as they are; edit the service to choose a new type.",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "pinned": "Pinned",
+    "created_at": "Created {{date}}",
+    "updated_at": "Updated {{date}}",
+    "missing_required": "Required fields not filled: {{count}}",
+    "no_fields": "This service has no fields.",
+    "show_empty": "Show empty fields ({{count}})",
+    "hide_empty": "Hide empty fields",
+    "open_linked": "Open {{label}}",
+    "nav": {
+      "previous": "Previous service",
+      "next": "Next service",
+      "position": "Service {{current}} of {{total}} in the list",
+      "position_unfiltered": "Service {{current}} of {{total}}: the list filters hide this service, so all services are used"
+    },
+    "delete_refs": {
+      "accounts": "Linked accounts: {{count}}. The service will be unlinked from them.",
+      "services": "Services that refer to it: {{count}}. Those references will be cleared."
+    },
+    "email": {
+      "checking": "Checking the mail provider…",
+      "unsupported_title": "Inbox not available for this address",
+      "unsupported_hint": "This mail provider is not built in. Fill in IMAP Host (and IMAP Port if it is not 993) for this service to read the inbox here. The server must accept IMAP over implicit TLS (IMAPS) with a certificate your system trusts. A custom email type needs fields with the keys imap_host and imap_port.",
+      "unsupported_hint_add_fields": "This mail provider is not built in. To read the inbox here, add the fields IMAP Host (key imap_host) and IMAP Port (key imap_port) to the type \"{{type}}\" in Service Types, then fill them in for this service."
     }
   },
   "components": {
     "linked_service": {
-      "title": "Linked Service: {{label}}"
+      "title": "Linked Service: {{label}}",
+      "edit": "Edit {{label}}",
+      "open": "Open {{label}}",
+      "no_values": "No values filled in.",
+      "type_missing": "The service type of this service no longer exists."
     }
   },
   "api": {
@@ -457,14 +826,36 @@
       "account_added": "Account successfully added",
       "account_updated": "Account successfully updated",
       "account_deleted": "Account successfully deleted",
-      "services_linked": "Services successfully linked",
       "services_deleted": "Services successfully deleted",
-      "bulk_accounts_created": "Accounts successfully created in bulk",
       "vault_exported": "Vault successfully exported",
-      "vault_imported": "Vault successfully imported"
+      "vault_imported": "Vault successfully imported",
+      "service_added_and_linked": "Service added and linked to the account",
+      "backup_restored": "Vault restored from backup",
+      "vault_imported_summary": "Added: {{serviceTypesAdded}}, {{servicesAdded}}, {{accountsAdded}}. Merged: {{serviceTypesMerged}}. Skipped (already present): {{servicesSkipped}}, {{accountsSkipped}}.",
+      "bulk_accounts_created_summary": "Linked {{linked}}.",
+      "services_linked_one": "{{count}} service linked",
+      "services_linked_other": "{{count}} services linked",
+      "services_unlinked_one": "{{count}} service unlinked",
+      "services_unlinked_other": "{{count}} services unlinked",
+      "services_deleted_count_one": "{{count}} service deleted",
+      "services_deleted_count_other": "{{count}} services deleted",
+      "accounts_deleted_count_one": "{{count}} account deleted",
+      "accounts_deleted_count_other": "{{count}} accounts deleted",
+      "bulk_accounts_created_one": "{{count}} account created",
+      "bulk_accounts_created_other": "{{count}} accounts created",
+      "backup_restored_locked": "Backup restored. The vault stays locked: unlock it with the backup's password."
     },
-    "error": {
-      "prefix": "Error"
+    "warning": {
+      "bulk_unmatched_one": "No matching service was found for {{count}} lookup. Check the service name templates.",
+      "bulk_unmatched_other": "No matching service was found for {{count}} lookups. Check the service name templates."
+    },
+    "counts": {
+      "accounts_one": "{{count}} account",
+      "accounts_other": "{{count}} accounts",
+      "services_one": "{{count}} service",
+      "services_other": "{{count}} services",
+      "service_types_one": "{{count}} service type",
+      "service_types_other": "{{count}} service types"
     }
   },
   "email_viewer": {
@@ -472,14 +863,236 @@
     "credentials_required": "Email credentials required",
     "status": {
       "connected": "Connected",
-      "disconnected": "Disconnected"
+      "idle": "Not connected",
+      "connecting": "Connecting…",
+      "failed": "Failed"
     },
-    "fetch_emails": "Fetch Emails",
     "recent_emails": "Recent Emails ({{count}})",
     "verification_code": "Verification Code",
     "verification_codes": "Verification Codes",
     "from": "From",
     "date": "Date",
-    "connection_failed": "Connection failed"
+    "connect": "Connect and fetch",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "ip_notice": "Nothing is fetched until you click Connect. The mailbox is accessed from this computer's network, so the mail provider sees your IP address.",
+    "no_messages": "The inbox is empty.",
+    "no_subject": "(no subject)",
+    "view_mode": "Display mode",
+    "view_html": "HTML",
+    "view_text": "Text",
+    "no_html": "This message has no HTML version.",
+    "remote_blocked": "Remote images, styles and scripts are blocked, and links cannot be opened from here. Hover over a link to see its address.",
+    "frame_title": "Email content",
+    "wait": {
+      "start": "Wait for code",
+      "hint": "Checks the inbox every 5 seconds for up to 2 minutes and copies the first code from a new message: one that arrives after you click, or one that arrived up to 1.5 minutes before and is not yet shown in the list.",
+      "cancel": "Stop waiting ({{time}})",
+      "waiting": "Waiting for a new message with a code… {{time}}",
+      "timeout": "No new message with a code arrived within 2 minutes.",
+      "code_copied": "Code {{code}} copied",
+      "code_found": "Code {{code}} found",
+      "code_from": "{{from}} — {{subject}}"
+    }
+  },
+  "app": {
+    "startup_failed_title": "AccMan could not start",
+    "startup_failed_description": "The vault status could not be checked.",
+    "retry": "Retry"
+  },
+  "restore_backup": {
+    "title": "Restore from backup",
+    "description": "AccMan keeps automatic encrypted backups of your vault. Pick a backup and enter the master password that was in use when it was made.",
+    "list_label": "Backups",
+    "loading": "Loading backups…",
+    "no_backups": "No backups found.",
+    "password_label": "Backup password",
+    "password_placeholder": "Master password at the time of the backup",
+    "password_becomes_master": "After restoring, this password becomes your master password. The current vault file is saved as a backup first.",
+    "restore_button": "Restore and unlock",
+    "restoring": "Restoring…",
+    "wrong_password": "This password does not open the selected backup. Use the master password that was valid when the backup was made."
+  },
+  "updater": {
+    "available_title": "Update available",
+    "available_message": "AccMan {{version}} is available (you have {{current}}). Install it now?",
+    "install": "Install",
+    "later": "Later",
+    "downloading": "Downloading update…",
+    "downloading_progress": "Downloading update… {{percent}}%",
+    "installing": "Installing update…",
+    "installed": "Update installed",
+    "restart_title": "Restart AccMan",
+    "restart_message": "The update has been installed. Restart AccMan now to finish? Unsaved changes in open forms will be lost.",
+    "restart": "Restart now",
+    "failed": "Update failed: {{message}}",
+    "check_failed": "Could not check for updates: {{message}}",
+    "up_to_date": "You are using the latest version."
+  },
+  "clipboard": {
+    "copied": "Copied to clipboard",
+    "copied_named": "{{label}} copied",
+    "clears_in": "The clipboard will be cleared in {{seconds}} s",
+    "copy_failed": "Could not copy to the clipboard"
+  },
+  "field_row": {
+    "show": "Show {{field}}",
+    "hide": "Hide {{field}}",
+    "copy": "Copy {{field}}",
+    "copy_code": "Copy code",
+    "code_label": "{{field}} code",
+    "secret_key": "Secret key",
+    "show_secret_key": "Show secret key",
+    "hide_secret_key": "Hide secret key",
+    "copy_secret_key": "Copy secret key",
+    "seconds_left": "{{seconds}} s left",
+    "invalid_totp": "Invalid 2FA secret. Expected a base32 key or an otpauth:// link.",
+    "empty": "Not set",
+    "required_missing": "Required field is empty",
+    "linked_missing": "Linked service not found"
+  },
+  "password_generator": {
+    "open": "Generate password",
+    "title": "Password generator",
+    "length": "Length",
+    "lowercase": "Lowercase (a-z)",
+    "uppercase": "Uppercase (A-Z)",
+    "digits": "Digits (0-9)",
+    "symbols": "Symbols (!@#…)",
+    "exclude_ambiguous": "Avoid look-alikes (I l 1 O 0)",
+    "regenerate": "Generate another",
+    "copy": "Copy password",
+    "use": "Use password",
+    "replace_confirm": "Replace current value",
+    "generated_password": "Generated password"
+  },
+  "password_strength": {
+    "label": "Strength: {{strength}}",
+    "bits": "≈{{bits}} bits",
+    "very_weak": "Very weak",
+    "weak": "Weak",
+    "fair": "Fair",
+    "strong": "Strong",
+    "very_strong": "Very strong",
+    "weak_hint": "Use a longer password or the generator."
+  },
+  "command_palette": {
+    "title": "Command palette",
+    "description": "Search accounts and services or run an action.",
+    "placeholder": "Search accounts, services, actions…",
+    "no_results": "Nothing found",
+    "footer": "↑↓ select · Enter open · Esc close",
+    "services_count": "Services: {{count}}",
+    "groups": {
+      "actions": "Actions",
+      "accounts": "Accounts",
+      "services": "Services"
+    },
+    "actions": {
+      "new_account": "New account",
+      "new_service": "New service",
+      "import_services": "Import services",
+      "service_types": "Service types",
+      "settings": "Settings",
+      "lock": "Lock vault"
+    }
+  },
+  "vault_health": {
+    "title": "Vault health",
+    "description": "Problems and risky reuse in your vault. Everything is analysed locally; no values are shown.",
+    "no_issues": "No problems found.",
+    "score_aria": "Health score {{score}} of 100: {{status}}",
+    "unknown_type": "Unknown type",
+    "show_all": "Show all ({{count}})",
+    "show_less": "Show less",
+    "more_services": "+{{count}} more",
+    "items_count_one": "{{count}} item",
+    "items_count_other": "{{count}} items",
+    "status": {
+      "healthy": "Healthy",
+      "needs_attention": "Needs attention",
+      "at_risk": "At risk"
+    },
+    "severity": {
+      "critical": "Critical",
+      "warning": "Warning",
+      "info": "Info"
+    },
+    "counts": {
+      "critical": "{{count}} critical",
+      "warning_one": "{{count}} warning",
+      "warning_other": "{{count}} warnings",
+      "info_one": "{{count}} note",
+      "info_other": "{{count}} notes"
+    },
+    "issues": {
+      "reused_values": {
+        "title": "Reused values",
+        "description": "The same password, email, proxy or other identifying value is used by several services. Shared values can link your accounts to each other."
+      },
+      "invalid_totp": {
+        "title": "Invalid 2FA secrets",
+        "description": "These 2FA keys cannot produce a code. Check them for typos."
+      },
+      "missing_type": {
+        "title": "Services without a type",
+        "description": "Their service type was deleted, so their fields cannot be displayed."
+      },
+      "weak_passwords": {
+        "title": "Weak passwords",
+        "description": "These passwords are short or easy to guess."
+      },
+      "missing_required": {
+        "title": "Missing required fields",
+        "description": "Required fields of these services are empty."
+      },
+      "orphan_services": {
+        "title": "Services without an account",
+        "description": "These services are not linked to any account."
+      },
+      "empty_accounts": {
+        "title": "Accounts without services",
+        "description": "These accounts have no linked services."
+      }
+    },
+    "reuse": {
+      "reason": {
+        "cross_account": "Links different accounts",
+        "same_type": "Duplicate within one service type",
+        "password": "Same password in several services"
+      },
+      "counts": "services: {{services}}, accounts: {{accounts}}",
+      "linked_to": "All point to",
+      "services_label": "Affected services"
+    }
+  },
+  "services_library": {
+    "clear_search": "Clear search",
+    "sort_by": "Sort by",
+    "view_grid": "Grid view",
+    "view_table": "Table view",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "pinned": "Pinned",
+    "unknown_type": "Unknown type",
+    "reset_filters": "Reset filters",
+    "selection": {
+      "enter": "Select services",
+      "exit": "Exit selection",
+      "select_all_visible": "Select all visible services",
+      "hint": "Click services to select them."
+    },
+    "delete_refs": {
+      "accounts": "Linked accounts: {{count}}. The services will be unlinked from them.",
+      "services": "Services that refer to it: {{count}}. Those references will be cleared."
+    },
+    "empty": {
+      "title": "No services yet",
+      "description": "Add a service or import a list of them."
+    }
+  },
+  "unsaved_guard": {
+    "title": "Unsaved changes",
+    "message": "You have unsaved changes. Leave this page and discard them?"
   }
 }

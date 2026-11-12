@@ -16,7 +16,6 @@ header_pages:
   - developer-guide.md
   - faq.md
   - contributing.md
-  - github-pages-setup.md
 
 # Plugins
 plugins:

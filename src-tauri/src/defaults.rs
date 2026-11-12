@@ -25,7 +25,7 @@ pub fn get_default_service_types() -> Vec<ServiceType> {
                 create_field("d-2", "email", "Email", "text", false, true),
                 create_field("d-3", "password", "Password", "secret", true, true),
                 create_field("d-6", "auth_token", "Auth Token", "textarea", true, false),
-                create_field("d-7", "2fa_key", "2FA Key", "secret", true, false),
+                create_field("d-7", "2fa_key", "2FA Key", "2fa", true, false),
                 create_field("d-8", "backup_codes", "Backup Codes", "textarea", true, false),
             ],
         },
@@ -39,7 +39,7 @@ pub fn get_default_service_types() -> Vec<ServiceType> {
                 create_field("t-2", "email", "Email", "text", false, true),
                 create_field("t-3", "password", "Password", "secret", true, true),
                 create_field("t-6", "auth_token", "Auth Token", "textarea", true, false),
-                create_field("t-7", "2fa_key", "2FA Key", "secret", true, false),
+                create_field("t-7", "2fa_key", "2FA Key", "2fa", true, false),
                 create_field("t-8", "backup_codes", "Backup Codes", "textarea", true, false),
             ],
         },
@@ -55,7 +55,9 @@ pub fn get_default_service_types() -> Vec<ServiceType> {
                 create_field("g-4", "recovery_email", "Recovery Email", "text", false, false),
                 create_field("g-5", "recovery_email_access_url", "Recovery Email Access URL", "url", false, false),
                 create_field("g-6", "recovery_email_access_password", "Recovery Email Access Password", "secret", true, false),
-                create_field("g-7", "2fa_key", "2FA Key", "secret", true, false),
+                create_field("g-7", "2fa_key", "2FA Key", "2fa", true, false),
+                create_field("g-8", "imap_host", "IMAP Host", "text", false, false),
+                create_field("g-9", "imap_port", "IMAP Port", "text", false, false),
             ],
         },
         // --- Proxy ---
@@ -90,4 +92,33 @@ pub fn get_default_service_types() -> Vec<ServiceType> {
             ],
         },
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    #[test]
+    fn defaults_are_consistent() {
+        let types = get_default_service_types();
+        let mut type_ids = HashSet::new();
+        for st in &types {
+            assert!(type_ids.insert(st.id.clone()));
+            let mut keys = HashSet::new();
+            let mut ids = HashSet::new();
+            for f in &st.fields {
+                assert!(keys.insert(f.key.clone()), "duplicate key {}", f.key);
+                assert!(ids.insert(f.id.clone()), "duplicate field id {}", f.id);
+                assert!(crate::models::FIELD_TYPES.contains(&f.field_type.as_str()));
+                if f.key == "2fa_key" {
+                    assert_eq!(f.field_type, "2fa");
+                    assert!(f.masked);
+                }
+            }
+        }
+        let email = types.iter().find(|t| t.id == "email").unwrap();
+        assert!(email.fields.iter().any(|f| f.key == "imap_host" && !f.required));
+        assert!(email.fields.iter().any(|f| f.key == "imap_port" && !f.required));
+    }
 }

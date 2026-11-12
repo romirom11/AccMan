@@ -1,162 +1,102 @@
 "use client"
 
 import { useState } from "react"
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Eye, EyeOff, Copy, Edit, Link2, KeyRound, RefreshCw } from "lucide-react"
+import { AlertCircle, Edit, ExternalLink, Link2 } from "lucide-react"
 import { useVaultStore } from "@/stores/vault-store"
-import { Service, ServiceField } from "@/types"
+import { FieldValueRow } from "@/components/field-value-row"
+import { findServiceType } from "@/lib/service-helpers"
+import type { Service } from "@/types"
 import { CreateServiceModal } from "./create-service-modal"
-import * as OTPAuth from "otpauth";
-import { useNavigate } from "react-router-dom"
 
 interface LinkedServiceDetailProps {
-  service: Service | undefined
+  /** The linked service; undefined/null when the stored id points to a service that no longer exists. */
+  service?: Service | null
+  /** Shows an "Open" button that calls this (the caller navigates, applying its unsaved-changes guard). */
+  onOpen?: (service: Service) => void
 }
 
-export function LinkedServiceDetail({ service }: LinkedServiceDetailProps) {
-  const { vault } = useVaultStore()
-  const { t } = useTranslation();
-  const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [generatedTokens, setGeneratedTokens] = useState<Record<string, string | null>>({})
-  const navigate = useNavigate()
+/**
+ * Compact card for the service a `linked_service` field points to. Nested linked_service fields
+ * are rendered by FieldValueRow as the target's label (never as a raw id, and never recursively).
+ */
+export function LinkedServiceDetail({ service, onOpen }: LinkedServiceDetailProps) {
+  const { t } = useTranslation()
+  const serviceTypes = useVaultStore((s) => s.vault?.serviceTypes)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
-  if (!service) return null;
-
-  const serviceType = vault?.serviceTypes.find((st) => st.id === service.serviceTypeId)
-
-  const toggleSecretVisibility = (fieldKey: string) => {
-    setVisibleSecrets((prev) => ({ ...prev, [fieldKey]: !prev[fieldKey] }))
-    if (!visibleSecrets[fieldKey]) {
-      setTimeout(() => {
-        setVisibleSecrets((prev) => ({ ...prev, [fieldKey]: false }))
-      }, 15000)
-    }
+  if (!service) {
+    return (
+      <div className="mt-2 flex items-center gap-2 rounded-md border border-dashed border-gray-600/50 p-3 text-sm italic text-gray-500">
+        <AlertCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+        {t("field_row.linked_missing")}
+      </div>
+    )
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-  }
-
-  const renderFieldValue = (field: ServiceField, value: string) => {
-    const isSecret = field.type === "secret" || field.masked
-    const isVisible = visibleSecrets[field.key]
-    return isSecret && !isVisible ? "••••••••" : value
-  }
-
-  const generateTotp = (fieldId: string, secret: string) => {
-    try {
-      const totp = new OTPAuth.TOTP({
-        issuer: "AccMan",
-        label: service.label,
-        algorithm: "SHA1",
-        digits: 6,
-        period: 30,
-        secret: secret,
-      });
-      const token = totp.generate();
-      setGeneratedTokens(prev => ({ ...prev, [fieldId]: token }));
-
-      setTimeout(() => {
-        setGeneratedTokens(prev => ({ ...prev, [fieldId]: null }));
-      }, 30000);
-
-    } catch (error) {
-      console.error("Error generating TOTP:", error);
-      setGeneratedTokens(prev => ({ ...prev, [fieldId]: "Error" }));
-    }
-  }
-
-  if (!serviceType) return null
+  const serviceType = findServiceType(serviceTypes, service.serviceTypeId)
+  // Filled fields, plus required ones that are empty (shown as missing).
+  const fields = (serviceType?.fields ?? []).filter((field) => !!service.data[field.key] || field.required)
+  const editLabel = t("components.linked_service.edit", { label: service.label })
+  const openLabel = t("components.linked_service.open", { label: service.label })
 
   return (
     <>
       <Card className="bg-gray-700/50 border-gray-600/50 border-dashed mt-2">
         <CardContent className="p-3">
-          <div className="flex justify-between items-center mb-2">
-             <div className="flex items-center gap-2 text-sm text-gray-400">
-                <Link2 className="w-4 h-4" />
-                <span>{t('components.linked_service.title', { label: service.label })}</span>
-             </div>
-             <div className="flex items-center gap-1">
-               <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-400 hover:text-white"
-                  title={t('common.view')}
-                  onClick={() => navigate(`/services/${service.id}`)}
-                >
-                  <Eye className="w-4 h-4" />
-                </Button>
+          <div className="flex justify-between items-center mb-2 gap-2">
+            <div className="flex items-center gap-2 text-sm text-gray-400 min-w-0">
+              <Link2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span className="truncate">{t("components.linked_service.title", { label: service.label })}</span>
+              {serviceType && <span className="text-xs text-gray-500 shrink-0">{serviceType.name}</span>}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {onOpen && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="text-gray-400 hover:text-white"
-                  onClick={() => setIsEditModalOpen(true)}
+                  onClick={() => onOpen(service)}
+                  aria-label={openLabel}
+                  title={openLabel}
                 >
-                  <Edit className="w-4 h-4" />
+                  <ExternalLink className="w-4 h-4" />
                 </Button>
-             </div>
-          </div>
-          <div className="space-y-2">
-            {serviceType.fields.map((field) => {
-              const value = service.data[field.key] || ""
-              if (!value) return null;
-              const isSecret = field.type === "secret" || field.masked
-
-              return (
-                <div key={field.id} className="flex items-center justify-between p-2 bg-gray-600/50 rounded-md">
-                  <div className="flex-1">
-                    <label className="text-xs font-medium text-gray-400 block">{field.label}</label>
-                    <div className="text-white font-mono text-sm">
-                        {generatedTokens[field.id] ? (
-                          <div className="flex items-center gap-2">
-                            <span className="tracking-widest text-lg text-green-400">{generatedTokens[field.id]}</span>
-                          </div>
-                        ) : (
-                          renderFieldValue(field, value)
-                        )}
-                    </div>
-                  </div>
-                  <div className="flex gap-1 ml-2">
-                    {isSecret && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => toggleSecretVisibility(field.key)}
-                        className="text-gray-400 hover:text-white h-7 w-7"
-                      >
-                        {visibleSecrets[field.key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </Button>
-                    )}
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => copyToClipboard(value)}
-                      className="text-gray-400 hover:text-white h-7 w-7"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                    {field.type === '2fa' && value && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => generateTotp(field.id, value)}
-                        className="text-gray-400 hover:text-white h-7 w-7"
-                      >
-                        {generatedTokens[field.id] ? <RefreshCw className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
-                      </Button>
-                    )}
-                  </div>
-                </div>
               )}
-            )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+                onClick={() => setIsEditModalOpen(true)}
+                aria-label={editLabel}
+                title={editLabel}
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
+          {fields.length > 0 ? (
+            <div className="space-y-2">
+              {fields.map((field) => (
+                <FieldValueRow
+                  key={`${service.id}:${field.id}`}
+                  field={field}
+                  value={service.data[field.key]}
+                  serviceLabel={service.label}
+                  size="sm"
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs italic text-gray-500">
+              {serviceType ? t("components.linked_service.no_values") : t("components.linked_service.type_missing")}
+            </p>
+          )}
         </CardContent>
       </Card>
-       <CreateServiceModal 
+      <CreateServiceModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         serviceToEdit={service}

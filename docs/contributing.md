@@ -97,7 +97,7 @@ Help make AccMan available in more languages:
 
 ### Prerequisites
 
-- **Node.js** 16+ and **pnpm**
+- **Node.js** 20+ to build and run the app, 24+ to run the frontend tests (`pnpm --dir src test`), and **pnpm**
 - **Rust** (latest stable)
 - **Git** for version control
 
@@ -118,7 +118,8 @@ Help make AccMan available in more languages:
 
 4. **Install dependencies**:
    ```bash
-   pnpm install
+   pnpm install            # Tauri CLI
+   pnpm --dir src install  # frontend dependencies
    ```
 
 5. **Start development**:
@@ -142,8 +143,8 @@ Help make AccMan available in more languages:
 
 4. **Test your changes**:
    ```bash
-   pnpm test
-   cargo test
+   pnpm --dir src test
+   (cd src-tauri && cargo test)
    ```
 
 5. **Commit your changes**:
@@ -197,15 +198,15 @@ Help make AccMan available in more languages:
 
 2. **Run all tests**:
    ```bash
-   pnpm test
-   cargo test
+   pnpm --dir src test
+   (cd src-tauri && cargo test)
    ```
 
-3. **Check code formatting**:
+3. **Check types, lint and formatting**:
    ```bash
-   pnpm lint
-   cargo fmt --check
-   cargo clippy
+   pnpm --dir src exec tsc --noEmit
+   pnpm --dir src lint
+   (cd src-tauri && cargo fmt --check && cargo clippy)
    ```
 
 4. **Update documentation** if needed
@@ -377,25 +378,18 @@ Contributors are recognized through:
 # Standard development
 pnpm tauri dev
 
-# Backend debugging with logs
-RUST_LOG=debug pnpm tauri dev
-
-# Specific module debugging
-RUST_LOG=accman::storage=debug pnpm tauri dev
+# Debug builds log at info level (tauri-plugin-log) to this terminal.
+# The webview developer tools are available in debug builds (right-click → Inspect).
 ```
 
 ### Testing
 
 ```bash
-# Run all tests
-pnpm test
-cargo test
+# Frontend unit tests (node:test, src/tests/*.test.ts; needs Node.js 24+)
+pnpm --dir src test
 
-# Watch mode for frontend
-pnpm test:watch
-
-# Coverage report
-pnpm test:coverage
+# Rust unit tests
+cd src-tauri && cargo test
 ```
 
 ### Building

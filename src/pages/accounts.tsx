@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, type MouseEvent } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { create } from "zustand"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -26,6 +25,7 @@ import {
   X,
 } from "lucide-react"
 import { useVaultStore } from "@/stores/vault-store"
+import { useAccountsListView } from "@/stores/list-view-store"
 import type { Account } from "@/types"
 import { CreateAccountModal } from "@/components/create-account-modal"
 import { BulkCreateAccountsModal } from "@/components/bulk-create-accounts-modal"
@@ -36,56 +36,13 @@ import {
   TAG_FILTER_ALL,
   collectAccountTags,
   filterAndSortAccounts,
-  isAccountSortOrder,
   nextSortOrder,
   parseTagFilterValue,
   rangeBetween,
   resolveTagFilter,
   tagFilterValue,
-  type AccountSortOrder,
 } from "@/lib/account-list"
 import { confirm } from "@tauri-apps/plugin-dialog"
-
-const SORT_ORDER_KEY = "accounts-sort-order"
-
-// Search text and tag names are vault content: they are kept in memory only (surviving navigation
-// within the session) and dropped on lock. Older versions persisted them in localStorage.
-try {
-  localStorage.removeItem("accounts-search-term")
-  localStorage.removeItem("accounts-selected-tag")
-} catch {
-  // Storage unavailable: nothing to clean up.
-}
-
-interface AccountsListFilters {
-  search: string
-  /** null = all tags */
-  tag: string | null
-  setSearch: (search: string) => void
-  setTag: (tag: string | null) => void
-  reset: () => void
-}
-
-const useAccountsListFilters = create<AccountsListFilters>((set) => ({
-  search: "",
-  tag: null,
-  setSearch: (search) => set({ search }),
-  setTag: (tag) => set({ tag }),
-  reset: () => set({ search: "", tag: null }),
-}))
-
-useVaultStore.subscribe((state, prev) => {
-  if (prev.vault && !state.vault) useAccountsListFilters.getState().reset()
-})
-
-function readSortOrder(): AccountSortOrder {
-  try {
-    const stored = localStorage.getItem(SORT_ORDER_KEY)
-    return isAccountSortOrder(stored) ? stored : "asc"
-  } catch {
-    return "asc"
-  }
-}
 
 const TAG_COLORS = [
   "bg-purple-600/20 text-purple-300",
@@ -112,12 +69,14 @@ export default function AccountsList() {
   const viewMode = useVaultStore((s) => s.accountsViewMode)
   const setViewMode = useVaultStore((s) => s.setAccountsViewMode)
 
-  const searchTerm = useAccountsListFilters((s) => s.search)
-  const setSearchTerm = useAccountsListFilters((s) => s.setSearch)
-  const storedTag = useAccountsListFilters((s) => s.tag)
-  const setStoredTag = useAccountsListFilters((s) => s.setTag)
+  // Shared with the account page's Previous/Next (see list-view-store for what is persisted).
+  const searchTerm = useAccountsListView((s) => s.search)
+  const setSearchTerm = useAccountsListView((s) => s.setSearch)
+  const storedTag = useAccountsListView((s) => s.tag)
+  const setStoredTag = useAccountsListView((s) => s.setTag)
+  const sortOrder = useAccountsListView((s) => s.sort)
+  const setSortOrder = useAccountsListView((s) => s.setSort)
 
-  const [sortOrder, setSortOrder] = useState<AccountSortOrder>(readSortOrder)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false)
   const [accountToEdit, setAccountToEdit] = useState<Account | null>(null)
@@ -134,14 +93,6 @@ export default function AccountsList() {
   useEffect(() => {
     if (storedTag !== null && activeTag === null) setStoredTag(null)
   }, [storedTag, activeTag, setStoredTag])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(SORT_ORDER_KEY, sortOrder)
-    } catch {
-      // Not persisted; the in-memory value still applies.
-    }
-  }, [sortOrder])
 
   const filteredAccounts = useMemo(
     () => filterAndSortAccounts(accounts, { search: searchTerm, tag: activeTag, sort: sortOrder }),

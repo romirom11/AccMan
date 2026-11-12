@@ -56,3 +56,15 @@ test("non-mod hotkeys match by key name and reject modifiers", () => {
   // A mod hotkey never fires without the modifier.
   assert.equal(matchesHotkey(ev({ key: "l", code: "KeyL" }), key("l"), false), false)
 })
+
+test("Alt+Arrow hotkeys (detail page Previous/Next)", () => {
+  const altLeft: HotkeySpec = { key: "ArrowLeft", mod: false, shift: false, alt: true }
+  for (const isMac of [false, true]) {
+    assert.equal(matchesHotkey(ev({ key: "ArrowLeft", code: "ArrowLeft", altKey: true }), altLeft, isMac), true)
+    // Plain arrows (scrolling) and other combos do not navigate.
+    assert.equal(matchesHotkey(ev({ key: "ArrowLeft", code: "ArrowLeft" }), altLeft, isMac), false)
+    assert.equal(matchesHotkey(ev({ key: "ArrowLeft", code: "ArrowLeft", altKey: true, shiftKey: true }), altLeft, isMac), false)
+    assert.equal(matchesHotkey(ev({ key: "ArrowLeft", code: "ArrowLeft", altKey: true, metaKey: true }), altLeft, isMac), false)
+    assert.equal(matchesHotkey(ev({ key: "ArrowRight", code: "ArrowRight", altKey: true }), altLeft, isMac), false)
+  }
+})

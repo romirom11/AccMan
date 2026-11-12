@@ -27,6 +27,9 @@ import { LinkedServiceDetail } from "@/components/linked-service-detail"
 import { LinkServiceToAccountModal } from "@/components/link-service-to-account-modal"
 import { EmailViewer } from "@/components/email-viewer"
 import { FieldValueRow } from "@/components/field-value-row"
+import { ListPager } from "@/components/list-pager"
+import { useServiceNeighbors } from "@/hooks/use-list-navigation"
+import { confirmLeave } from "@/lib/unsaved-guard"
 import { vaultApi } from "@/api/vault"
 import { currentLanguage } from "@/i18n"
 import { cn } from "@/lib/utils"
@@ -104,6 +107,8 @@ export default function ServiceView() {
   const serviceType = service ? findServiceType(vault?.serviceTypes, service.serviceTypeId) : undefined
 
   const references = useMemo(() => findServiceReferences(vault, id ?? ""), [vault, id])
+  // Previous/Next in the order the Services page currently shows.
+  const neighbors = useServiceNeighbors(id)
 
   // Email inbox: only for the Email type with credentials, and a known provider or an explicit IMAP host.
   const emailAccess = useMemo(() => {
@@ -196,6 +201,11 @@ export default function ServiceView() {
     else navigate("/services")
   }
 
+  // Replaces the entry, so "back" still leads to where the user came from.
+  const goToService = async (serviceId: string) => {
+    if (await confirmLeave()) navigate(`/services/${serviceId}`, { replace: true })
+  }
+
   const handleDeleteService = async () => {
     if (deleting) return
     const lines = [t("service_view.delete_confirm_message")]
@@ -285,7 +295,19 @@ export default function ServiceView() {
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <ListPager
+                neighbors={neighbors}
+                onNavigate={(serviceId) => void goToService(serviceId)}
+                previousLabel={t("service_view.nav.previous")}
+                nextLabel={t("service_view.nav.next")}
+                positionLabel={t(neighbors.unfiltered ? "service_view.nav.position_unfiltered" : "service_view.nav.position", {
+                  current: neighbors.index + 1,
+                  total: neighbors.total,
+                })}
+                hotkeysEnabled={!isEditModalOpen && !isLinkToAccountModalOpen}
+              />
+              {neighbors.index !== -1 && <div className="w-px h-6 bg-gray-600" aria-hidden="true" />}
               <Button
                 variant="outline"
                 className={cn(

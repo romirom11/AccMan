@@ -13,6 +13,8 @@ import { CreateAccountModal } from "@/components/create-account-modal"
 import { CreateServiceModal } from "@/components/create-service-modal"
 import { LinkedServiceDetail } from "@/components/linked-service-detail"
 import { FieldValueRow } from "@/components/field-value-row"
+import { ListPager } from "@/components/list-pager"
+import { useAccountNeighbors } from "@/hooks/use-list-navigation"
 import { findServiceType, getServiceTitle } from "@/lib/service-helpers"
 import { currentLanguage } from "@/i18n"
 import { cn } from "@/lib/utils"
@@ -36,6 +38,8 @@ export default function AccountView() {
   const setPinned = useVaultStore((s) => s.setPinned)
 
   const account = vault?.accounts.find((acc) => acc.id === id)
+  // Previous/Next in the order the Accounts page currently shows.
+  const neighbors = useAccountNeighbors(id)
 
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesDraft, setNotesDraft] = useState("")
@@ -89,6 +93,11 @@ export default function AccountView() {
 
   const navigateAway = async (to: string) => {
     if (await confirmLeave()) navigate(to)
+  }
+
+  // Replaces the entry, so "back" still leads to where the user came from.
+  const goToAccount = async (accountId: string) => {
+    if (await confirmLeave()) navigate(`/accounts/${accountId}`, { replace: true })
   }
 
   const handleSaveNotes = async () => {
@@ -203,7 +212,19 @@ export default function AccountView() {
                 )}
               </div>
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
+              <ListPager
+                neighbors={neighbors}
+                onNavigate={(accountId) => void goToAccount(accountId)}
+                previousLabel={t('account_view.nav.previous')}
+                nextLabel={t('account_view.nav.next')}
+                positionLabel={t(neighbors.unfiltered ? 'account_view.nav.position_unfiltered' : 'account_view.nav.position', {
+                  current: neighbors.index + 1,
+                  total: neighbors.total,
+                })}
+                hotkeysEnabled={!isLinkModalOpen && !isEditModalOpen && !isCreateServiceModalOpen && serviceToEdit === null}
+              />
+              {neighbors.index !== -1 && <div className="w-px h-6 bg-gray-600" aria-hidden="true" />}
               <Button
                 variant="outline"
                 size="icon"
@@ -403,7 +424,12 @@ export default function AccountView() {
                                 value={service.data[field.key]}
                                 serviceLabel={title}
                                 size="md"
-                                renderLinkedService={(_linkedId, linked) => <LinkedServiceDetail service={linked} />}
+                                renderLinkedService={(_linkedId, linked) => (
+                                  <LinkedServiceDetail
+                                    service={linked}
+                                    onOpen={(target) => void navigateAway(`/services/${target.id}`)}
+                                  />
+                                )}
                               />
                             ))}
                           </div>

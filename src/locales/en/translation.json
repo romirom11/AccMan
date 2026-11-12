@@ -480,6 +480,12 @@
       "no_values": "No values filled in."
     },
     "back_to_accounts": "Back to accounts",
+    "nav": {
+      "previous": "Previous account",
+      "next": "Next account",
+      "position": "Account {{current}} of {{total}} in the list",
+      "position_unfiltered": "Account {{current}} of {{total}}: the list filters hide this account, so all accounts are used"
+    },
     "created_at": "Created {{date}}",
     "updated_at": "Updated {{date}}",
     "unlink_confirm_message_named": "Unlink “{{service}}” from this account? The service itself is kept."
@@ -781,6 +787,12 @@
     "show_empty": "Show empty fields ({{count}})",
     "hide_empty": "Hide empty fields",
     "open_linked": "Open {{label}}",
+    "nav": {
+      "previous": "Previous service",
+      "next": "Next service",
+      "position": "Service {{current}} of {{total}} in the list",
+      "position_unfiltered": "Service {{current}} of {{total}}: the list filters hide this service, so all services are used"
+    },
     "delete_refs": {
       "accounts": "Linked accounts: {{count}}. The service will be unlinked from them.",
       "services": "Services that refer to it: {{count}}. Those references will be cleared."
@@ -796,6 +808,7 @@
     "linked_service": {
       "title": "Linked Service: {{label}}",
       "edit": "Edit {{label}}",
+      "open": "Open {{label}}",
       "no_values": "No values filled in.",
       "type_missing": "The service type of this service no longer exists."
     }

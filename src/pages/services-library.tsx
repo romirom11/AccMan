@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
-import { create } from "zustand"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import {
   ArrowDown,
@@ -31,6 +30,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useVaultStore } from "@/stores/vault-store"
+import { useServicesListView } from "@/stores/list-view-store"
 import { CreateServiceModal } from "@/components/create-service-modal"
 import { BulkLinkServicesModal } from "@/components/bulk-link-services-modal"
 import { useCreateRequest } from "@/components/command-palette"
@@ -42,66 +42,11 @@ import {
   filterAndSortServices,
   findServiceReferences,
   isServiceSortBy,
-  isServiceSortOrder,
   nextServiceSortOrder,
   pruneSelection,
   resolveTypeFilter,
-  type ServiceSortBy,
-  type ServiceSortOrder,
 } from "@/lib/service-list"
 import type { Service } from "@/types"
-
-const SORT_ORDER_KEY = "services-sort-order"
-const SORT_BY_KEY = "services-sort-by"
-const TYPE_FILTER_KEY = "services-selected-type"
-
-// The search text is vault content: it lives in memory only (surviving navigation within the
-// session) and is dropped on lock. Older versions persisted it in localStorage.
-try {
-  localStorage.removeItem("services-search-query")
-} catch {
-  // Storage unavailable: nothing to clean up.
-}
-
-interface ServicesSearchState {
-  search: string
-  setSearch: (search: string) => void
-}
-
-const useServicesSearch = create<ServicesSearchState>((set) => ({
-  search: "",
-  setSearch: (search) => set({ search }),
-}))
-
-useVaultStore.subscribe((state, prev) => {
-  if (prev.vault && !state.vault) useServicesSearch.getState().setSearch("")
-})
-
-function readStored<T>(key: string, guard: (value: unknown) => value is T, fallback: T): T {
-  try {
-    const stored = localStorage.getItem(key)
-    return guard(stored) ? stored : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function writeStored(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value)
-  } catch {
-    // Preferences are optional.
-  }
-}
-
-function readTypeFilter(): string | null {
-  try {
-    const stored = localStorage.getItem(TYPE_FILTER_KEY)
-    return stored && stored !== TYPE_FILTER_ALL ? stored : null
-  } catch {
-    return null
-  }
-}
 
 // Select values for the type filter. Type ids are user-chosen, so they are prefixed and can never
 // collide with the "all" sentinel.
@@ -119,11 +64,15 @@ export default function ServicesLibrary() {
   const viewMode = useVaultStore((s) => s.servicesViewMode)
   const setViewMode = useVaultStore((s) => s.setServicesViewMode)
 
-  const searchQuery = useServicesSearch((s) => s.search)
-  const setSearchQuery = useServicesSearch((s) => s.setSearch)
-  const [storedTypeFilter, setStoredTypeFilter] = useState<string | null>(readTypeFilter)
-  const [sortOrder, setSortOrder] = useState<ServiceSortOrder>(() => readStored(SORT_ORDER_KEY, isServiceSortOrder, "asc"))
-  const [sortBy, setSortBy] = useState<ServiceSortBy>(() => readStored(SORT_BY_KEY, isServiceSortBy, "name"))
+  // Shared with the service page's Previous/Next (see list-view-store for what is persisted).
+  const searchQuery = useServicesListView((s) => s.search)
+  const setSearchQuery = useServicesListView((s) => s.setSearch)
+  const storedTypeFilter = useServicesListView((s) => s.typeId)
+  const setStoredTypeFilter = useServicesListView((s) => s.setTypeId)
+  const sortOrder = useServicesListView((s) => s.sortOrder)
+  const setSortOrder = useServicesListView((s) => s.setSortOrder)
+  const sortBy = useServicesListView((s) => s.sortBy)
+  const setSortBy = useServicesListView((s) => s.setSortBy)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const [editServiceId, setEditServiceId] = useState<string | null>(null)
@@ -138,9 +87,9 @@ export default function ServicesLibrary() {
   const typeFilter = resolveTypeFilter(storedTypeFilter, serviceTypes)
   const typesById = useMemo(() => new Map(serviceTypes.map((type) => [type.id, type])), [serviceTypes])
 
-  useEffect(() => writeStored(TYPE_FILTER_KEY, typeFilter ?? TYPE_FILTER_ALL), [typeFilter])
-  useEffect(() => writeStored(SORT_ORDER_KEY, sortOrder), [sortOrder])
-  useEffect(() => writeStored(SORT_BY_KEY, sortBy), [sortBy])
+  useEffect(() => {
+    if (storedTypeFilter !== null && typeFilter === null) setStoredTypeFilter(null)
+  }, [storedTypeFilter, typeFilter, setStoredTypeFilter])
 
   const filteredServices = useMemo(
     () => filterAndSortServices(services, serviceTypes, { search: searchQuery, typeId: typeFilter, sortBy, sortOrder }),

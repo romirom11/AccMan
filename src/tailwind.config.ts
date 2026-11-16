@@ -5,6 +5,8 @@ const config: Config = {
   darkMode: ["class"],
   content: [
     "./index.html",
+    // Root-level app.tsx / main.tsx
+    "./*.{ts,tsx}",
     "./app/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
     "./pages/**/*.{js,ts,jsx,tsx}",

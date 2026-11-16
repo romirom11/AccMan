@@ -1,17 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useVaultStore } from "../stores/vault-store";
-import { toast } from "sonner";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { AccountPicker } from "@/components/account-picker";
+import { useVaultStore } from "../stores/vault-store";
 
 interface LinkServiceToAccountModalProps {
   isOpen: boolean;
@@ -21,41 +16,51 @@ interface LinkServiceToAccountModalProps {
 
 export function LinkServiceToAccountModal({ isOpen, onClose, serviceId }: LinkServiceToAccountModalProps) {
   const { t } = useTranslation();
-  const { vault, linkServicesToAccount } = useVaultStore();
+  const vault = useVaultStore((s) => s.vault);
+  const linkServicesToAccount = useVaultStore((s) => s.linkServicesToAccount);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
-  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const service = vault?.services.find(srv => srv.id === serviceId);
-  const availableAccounts = vault?.accounts.filter(account => !account.linkedServices.includes(serviceId)) || [];
-
-  const handleSubmit = async () => {
-    if (!selectedAccountId) {
-      toast.error(t('modals.link_service_to_account.errors.account_required'));
-      return;
+  // Fresh state every time the dialog opens.
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedAccountId("");
+      setIsSubmitting(false);
     }
+  }, [isOpen]);
 
-    try {
-      await linkServicesToAccount(selectedAccountId, [serviceId]);
-      toast.success(t('modals.link_service_to_account.success'));
-      onClose();
-    } catch (error) {
-      console.error('Error linking service to account:', error);
-      toast.error(t('modals.link_service_to_account.errors.link_failed'));
-    }
-  };
+  const service = vault?.services.find((srv) => srv.id === serviceId);
+  const accounts = vault?.accounts ?? [];
+  const isLinked = (accountId: string) =>
+    accounts.find((a) => a.id === accountId)?.linkedServices.includes(serviceId) ?? false;
+  const availableCount = accounts.filter((a) => !a.linkedServices.includes(serviceId)).length;
+  // The selection may have been deleted or linked meanwhile.
+  const selectionValid = !!selectedAccountId && accounts.some((a) => a.id === selectedAccountId) && !isLinked(selectedAccountId);
 
   const handleClose = () => {
-    setSelectedAccountId("");
-    setOpen(false);
+    if (isSubmitting) return;
     onClose();
   };
 
-  const selectedAccount = availableAccounts.find(account => account.id === selectedAccountId);
+  const handleSubmit = async () => {
+    if (!selectionValid || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      // Success and error toasts come from the store / API layer.
+      await linkServicesToAccount(selectedAccountId, [serviceId]);
+      setSelectedAccountId("");
+      onClose();
+    } catch {
+      // Keep the dialog open so the user can retry.
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!service) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-md">
         <DialogHeader>
           <DialogTitle>{t('modals.link_service_to_account.title')}</DialogTitle>
@@ -64,93 +69,43 @@ export function LinkServiceToAccountModal({ isOpen, onClose, serviceId }: LinkSe
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Account Selection */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">
-              {t('modals.link_service_to_account.account_label')}
-            </label>
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className="w-full justify-between bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-                >
-                  {selectedAccount
-                    ? selectedAccount.label
-                    : t('modals.link_service_to_account.account_placeholder')}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0 bg-gray-700 border-gray-600">
-                <Command className="bg-gray-700">
-                  <CommandInput 
-                    placeholder={t('modals.link_service_to_account.search_placeholder')} 
-                    className="bg-gray-700 text-white border-gray-600"
-                  />
-                  <CommandList>
-                    <CommandEmpty className="text-gray-400 py-6 text-center text-sm">
-                      {t('modals.link_service_to_account.no_accounts_found')}
-                    </CommandEmpty>
-                    <CommandGroup>
-                      <ScrollArea className="max-h-48">
-                        {availableAccounts.map((account) => (
-                          <CommandItem
-                            key={account.id}
-                            value={account.label}
-                            onSelect={() => {
-                              setSelectedAccountId(account.id === selectedAccountId ? "" : account.id);
-                              setOpen(false);
-                            }}
-                            className="text-white hover:bg-gray-600 cursor-pointer"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedAccountId === account.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <div className="flex items-center justify-between w-full">
-                              <div>
-                                <div className="font-medium">{account.label}</div>
-                                <div className="flex gap-1 mt-1">
-                                  {account.tags.slice(0, 2).map((tag) => (
-                                    <Badge key={tag} variant="secondary" className="text-xs">
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </ScrollArea>
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {availableAccounts.length === 0 && (
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-gray-300">{t('modals.link_service_to_account.account_label')}</div>
+          {accounts.length === 0 || availableCount === 0 ? (
             <p className="text-gray-400 text-sm text-center py-4">
               {t('modals.link_service_to_account.no_available_accounts')}
             </p>
+          ) : (
+            <AccountPicker
+              accounts={accounts}
+              value={selectedAccountId}
+              onChange={setSelectedAccountId}
+              isDisabled={(account) => account.linkedServices.includes(serviceId)}
+              renderNote={(account) =>
+                account.linkedServices.includes(serviceId) ? (
+                  <Badge variant="outline" className="shrink-0 text-xs border-gray-500 text-gray-300">
+                    {t('modals.link_service_to_account.already_linked')}
+                  </Badge>
+                ) : null
+              }
+              label={t('modals.link_service_to_account.account_label')}
+              searchPlaceholder={t('modals.link_service_to_account.search_placeholder')}
+              emptyText={t('modals.link_service_to_account.no_accounts_found')}
+              disabled={isSubmitting}
+            />
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} className="border-gray-600 text-gray-300">
+          <Button variant="outline" onClick={handleClose} disabled={isSubmitting} className="border-gray-600 text-gray-300">
             {t('common.cancel')}
           </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={!selectedAccountId}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+          <Button
+            onClick={handleSubmit}
+            disabled={!selectionValid || isSubmitting}
+            className="bg-gradient-to-r from-blue-600 to-purple-700"
           >
-            {t('modals.link_service_to_account.link_button')}
+            {isSubmitting ? t('modals.link_service_to_account.linking') : t('modals.link_service_to_account.link_button')}
           </Button>
         </DialogFooter>
       </DialogContent>

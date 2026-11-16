@@ -1,78 +1,53 @@
-//! `commands.rs`: Defines the Tauri commands exposed to the frontend.
+//! `commands.rs`: the Tauri command layer. Thin wrappers over `session::AppState` and
+//! `vault_ops`; all logic lives there.
+//!
+//! Commands that derive a key (create, unlock, password change, export, import, restore) and
+//! clipboard access run on a blocking worker, never on the main thread. Ordinary mutations reuse
+//! the session key, are fast, and stay synchronous so they execute in the order they were sent.
 
-use crate::crypto::MasterPassword;
-use crate::models::{Account, Service, ServiceType, Settings, Vault};
-use crate::storage::{self, StorageError};
-use crate::StoragePath;
-use crate::defaults; // Import the defaults module
-use std::sync::Mutex;
-use tauri::State;
-use uuid;
+use std::path::PathBuf;
 
-// --- State Management ---
+use log::warn;
+use tauri::{AppHandle, Manager, State};
 
-/// Manages the in-memory state of the decrypted vault.
-pub struct AppState(pub Mutex<Option<Vault>>);
+use crate::clipboard;
+use crate::defaults;
+use crate::error::CommandResult;
+use crate::models::{
+    Account, BackupInfo, BulkCreateRequest, BulkCreateResult, ImportResult, Service, ServiceType,
+    Settings, Vault,
+};
+use crate::session::{secret, AppState};
+use crate::storage::now_millis;
+use crate::vault_ops;
 
-/// Manages the session's master password. This is cleared on lock.
-#[derive(Default)]
-pub struct SessionState {
-    pub master_password: Mutex<Option<MasterPassword>>,
+/// Runs `work` against the app state on the blocking thread pool.
+async fn on_worker<T, F>(app: &AppHandle, work: F) -> CommandResult<T>
+where
+    T: Send + 'static,
+    F: FnOnce(&AppState) -> CommandResult<T> + Send + 'static,
+{
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        work(&state)
+    })
+    .await?
 }
 
-// --- Command Errors ---
-
-#[derive(Debug, serde::Serialize, thiserror::Error)]
-pub enum CommandError {
-    #[error("Storage Error: {0}")]
-    Storage(String),
-    #[error("Vault is already unlocked.")]
-    AlreadyUnlocked,
-    #[error("Vault is locked or not yet created.")]
-    VaultLocked,
-    #[error("A Service Type with ID '{0}' already exists.")]
-    ServiceTypeExists(String),
-    #[error("Service Type with ID '{0}' not found.")]
-    ServiceTypeNotFound(String),
-    #[error("Service with ID '{0}' not found.")]
-    ServiceNotFound(String),
-    #[error("Account with ID '{0}' not found.")]
-    AccountNotFound(String),
-    #[error("The old password provided is incorrect.")]
-    InvalidOldPassword,
-    #[error("Invalid import password provided.")]
-    InvalidImportPassword,
+fn mutate(
+    state: &AppState,
+    change: impl FnOnce(&mut Vault, u64) -> CommandResult<()>,
+) -> CommandResult<Vault> {
+    let now = now_millis();
+    state.mutate(|vault| change(vault, now)).map(|(vault, ())| vault)
 }
 
-impl From<StorageError> for CommandError {
-    fn from(err: StorageError) -> Self {
-        CommandError::Storage(err.to_string())
-    }
-}
-
-// --- Helper for saving ---
-fn save_vault_with_session_password(
-    path: &State<StoragePath>,
-    app_state: &State<AppState>,
-    session_state: &State<SessionState>,
-) -> Result<(), CommandError> {
-    let vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_ref().ok_or(CommandError::VaultLocked)?;
-
-    let password_guard = session_state.master_password.lock().unwrap();
-    let password = password_guard
-        .as_ref()
-        .ok_or(CommandError::VaultLocked)?;
-
-    storage::save_vault(path, vault, password)?;
-    Ok(())
-}
-
-// --- Vault Lifecycle Commands ---
+// --- Vault lifecycle ---
 
 #[tauri::command]
-pub fn vault_exists(path: State<StoragePath>) -> bool {
-    storage::vault_exists(&path)
+pub fn vault_exists(state: State<'_, AppState>) -> CommandResult<bool> {
+    state.vault_exists()
 }
 
 #[tauri::command]
@@ -80,654 +55,230 @@ pub fn get_default_service_types_list() -> Vec<ServiceType> {
     defaults::get_default_service_types()
 }
 
-
 #[tauri::command]
-pub fn create_vault(
-    path: State<StoragePath>,
+pub async fn create_vault(
+    app: AppHandle,
     password: String,
     settings: Settings,
     selected_service_type_ids: Vec<String>,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<Vault, CommandError> {
-    let mut vault_state = app_state.0.lock().unwrap();
-    if vault_exists(path.clone()) {
-        if let Some(existing_vault) = vault_state.as_ref() {
-            return Ok(existing_vault.clone());
-        }
-    }
-
-    let all_default_types = defaults::get_default_service_types();
-    let selected_types = all_default_types
-        .into_iter()
-        .filter(|st| selected_service_type_ids.contains(&st.id))
-        .collect();
-
-    let new_vault = Vault {
-        version: "0.2.0".to_string(),
-        service_types: selected_types,
-        services: vec![],
-        accounts: vec![],
-        settings,
-    };
-
-    let master_pass = MasterPassword(password);
-    storage::save_vault(&path, &new_vault, &master_pass)?;
-
-    let mut session_pass = session_state.master_password.lock().unwrap();
-    *session_pass = Some(master_pass);
-
-    let vault_clone = new_vault.clone();
-    *vault_state = Some(new_vault);
-
-    Ok(vault_clone)
+) -> CommandResult<Vault> {
+    let password = secret(password);
+    on_worker(&app, move |state| {
+        state.create_vault(&password, settings, &selected_service_type_ids)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn unlock_vault(
-    path: State<StoragePath>,
+pub async fn unlock_vault(app: AppHandle, password: String) -> CommandResult<Vault> {
+    let password = secret(password);
+    on_worker(&app, move |state| state.unlock(&password)).await
+}
+
+/// Idempotent. Also clears the clipboard if it still holds a value copied by the app.
+#[tauri::command]
+pub async fn lock_vault(app: AppHandle) -> CommandResult<()> {
+    app.state::<AppState>().lock();
+    let handle = app.clone();
+    let cleared = tauri::async_runtime::spawn_blocking(move || clipboard::clear_if_owned(&handle)).await;
+    match cleared {
+        Ok(Ok(_)) => {}
+        Ok(Err(e)) => warn!("Clipboard was not cleared on lock: {e}"),
+        Err(e) => warn!("Clipboard was not cleared on lock: {e}"),
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_vault(state: State<'_, AppState>) -> CommandResult<Vault> {
+    state.get_vault()
+}
+
+#[tauri::command]
+pub fn update_settings(state: State<'_, AppState>, settings: Settings) -> CommandResult<Vault> {
+    mutate(&state, |v, _| vault_ops::update_settings(v, settings))
+}
+
+#[tauri::command]
+pub async fn change_master_password(
+    app: AppHandle,
+    old_password: String,
+    new_password: String,
+) -> CommandResult<()> {
+    let old_password = secret(old_password);
+    let new_password = secret(new_password);
+    on_worker(&app, move |state| {
+        state.change_master_password(&old_password, &new_password)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn export_vault(app: AppHandle, export_path: String, password: String) -> CommandResult<()> {
+    let password = secret(password);
+    on_worker(&app, move |state| {
+        state.export_vault(&PathBuf::from(export_path), &password)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn import_vault(
+    app: AppHandle,
+    import_path: String,
     password: String,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<Vault, CommandError> {
-    let mut vault_state = app_state.0.lock().unwrap();
-    if let Some(existing_vault) = vault_state.as_ref() {
-        return Ok(existing_vault.clone());
-    }
-
-    let master_pass = MasterPassword(password);
-    let vault = storage::load_vault(&path, &master_pass)?;
-
-    let mut session_pass = session_state.master_password.lock().unwrap();
-    *session_pass = Some(master_pass);
-
-    let vault_clone = vault.clone();
-    *vault_state = Some(vault);
-
-    Ok(vault_clone)
+    merge_strategy: String,
+) -> CommandResult<ImportResult> {
+    let password = secret(password);
+    on_worker(&app, move |state| {
+        state.import_vault(&PathBuf::from(import_path), &password, &merge_strategy)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn lock_vault(
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_state = app_state.0.lock().unwrap();
-    if vault_state.is_none() {
-        return Err(CommandError::VaultLocked);
-    }
-    *vault_state = None;
-
-    let mut session_pass = session_state.master_password.lock().unwrap();
-    *session_pass = None; // This will trigger ZeroizeOnDrop for MasterPassword
-
-    Ok(())
+pub fn list_backups(state: State<'_, AppState>) -> CommandResult<Vec<BackupInfo>> {
+    state.list_backups()
 }
 
 #[tauri::command]
-pub fn get_vault(app_state: State<AppState>) -> Result<Vault, CommandError> {
-    let vault_guard = app_state.0.lock().unwrap();
-    match vault_guard.as_ref() {
-        Some(vault) => Ok(vault.clone()),
-        None => Err(CommandError::VaultLocked),
-    }
+pub async fn restore_backup(app: AppHandle, file_name: String, password: String) -> CommandResult<Vault> {
+    let password = secret(password);
+    on_worker(&app, move |state| state.restore_backup(&file_name, &password)).await
 }
 
-// --- Settings Commands ---
+// --- Service types ---
 
 #[tauri::command]
-pub fn update_settings(
-    path: State<StoragePath>,
-    settings: Settings,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    vault.settings = settings;
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
+pub fn add_service_type(state: State<'_, AppState>, service_type: ServiceType) -> CommandResult<Vault> {
+    mutate(&state, |v, _| vault_ops::add_service_type(v, service_type))
 }
 
 #[tauri::command]
-pub fn delete_services(
-    path: State<'_, StoragePath>,
-    service_ids: Vec<String>,
-    app_state: State<'_, AppState>,
-    session_state: State<'_, SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    vault.services.retain(|s| !service_ids.contains(&s.id));
-
-    // Also remove these services from any account that links to them
-    for account in &mut vault.accounts {
-        account.linked_services.retain(|id| !service_ids.contains(id));
-    }
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
-}
-
-
-// --- ServiceType Commands ---
-
-#[tauri::command]
-pub fn add_service_type(
-    path: State<StoragePath>,
-    service_type: ServiceType,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    if vault
-        .service_types
-        .iter()
-        .any(|st| st.id == service_type.id)
-    {
-        return Err(CommandError::ServiceTypeExists(service_type.id));
-    }
-
-    vault.service_types.push(service_type);
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
-}
-
-#[tauri::command]
-pub fn update_service_type(
-    path: State<StoragePath>,
-    service_type: ServiceType,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    if let Some(st) = vault
-        .service_types
-        .iter_mut()
-        .find(|st| st.id == service_type.id)
-    {
-        *st = service_type;
-    } else {
-        return Err(CommandError::ServiceTypeNotFound(service_type.id));
-    }
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
+pub fn update_service_type(state: State<'_, AppState>, service_type: ServiceType) -> CommandResult<Vault> {
+    mutate(&state, |v, _| vault_ops::update_service_type(v, service_type))
 }
 
 #[tauri::command]
 pub fn delete_service_type(
-    path: State<StoragePath>,
+    state: State<'_, AppState>,
     service_type_id: String,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    let initial_len = vault.service_types.len();
-    vault
-        .service_types
-        .retain(|st| st.id != service_type_id);
-
-    if vault.service_types.len() == initial_len {
-        return Err(CommandError::ServiceTypeNotFound(service_type_id));
-    }
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
+    cascade: Option<bool>,
+) -> CommandResult<Vault> {
+    mutate(&state, |v, _| {
+        vault_ops::delete_service_type(v, &service_type_id, cascade.unwrap_or(false))
+    })
 }
 
-// --- Service Commands ---
+// --- Services ---
 
 #[tauri::command]
 pub fn add_service(
-    path: State<StoragePath>,
+    state: State<'_, AppState>,
     service: Service,
     account_id: Option<String>,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    let service_id = service.id.clone();
-    vault.services.push(service);
-
-    // If account_id is provided, link the service to the account
-    if let Some(account_id) = account_id {
-        if let Some(account) = vault.accounts.iter_mut().find(|a| a.id == account_id) {
-            account.linked_services.push(service_id);
-            account.linked_services.sort();
-            account.linked_services.dedup();
-        } else {
-            return Err(CommandError::AccountNotFound(account_id));
-        }
-    }
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
+) -> CommandResult<Vault> {
+    mutate(&state, |v, now| {
+        vault_ops::add_service(v, service, account_id.as_deref(), now)
+    })
 }
 
 #[tauri::command]
-pub fn add_services(
-    path: State<StoragePath>,
-    services: Vec<Service>,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    vault.services.extend(services);
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
+pub fn add_services(state: State<'_, AppState>, services: Vec<Service>) -> CommandResult<Vault> {
+    mutate(&state, |v, now| vault_ops::add_services(v, services, now))
 }
 
 #[tauri::command]
-pub fn update_service(
-    path: State<StoragePath>,
-    service: Service,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    if let Some(s) = vault.services.iter_mut().find(|s| s.id == service.id) {
-        *s = service;
-    } else {
-        return Err(CommandError::ServiceNotFound(service.id));
-    }
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
+pub fn update_service(state: State<'_, AppState>, service: Service) -> CommandResult<Vault> {
+    mutate(&state, |v, now| vault_ops::update_service(v, service, now))
 }
 
 #[tauri::command]
-pub fn delete_service(
-    path: State<StoragePath>,
-    service_id: String,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    let initial_len = vault.services.len();
-    vault.services.retain(|s| s.id != service_id);
-
-    if vault.services.len() == initial_len {
-        return Err(CommandError::ServiceNotFound(service_id));
-    }
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
-}
-
-// --- Account Commands ---
-
-#[tauri::command]
-pub fn add_account(
-    path: State<StoragePath>,
-    account: Account,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    vault.accounts.push(account);
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
+pub fn delete_service(state: State<'_, AppState>, service_id: String) -> CommandResult<Vault> {
+    mutate(&state, |v, _| vault_ops::delete_service(v, &service_id))
 }
 
 #[tauri::command]
-pub fn update_account(
-    path: State<StoragePath>,
-    account: Account,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
+pub fn delete_services(state: State<'_, AppState>, service_ids: Vec<String>) -> CommandResult<Vault> {
+    mutate(&state, |v, _| vault_ops::delete_services(v, &service_ids))
+}
 
-    if let Some(a) = vault.accounts.iter_mut().find(|a| a.id == account.id) {
-        *a = account;
-    } else {
-        return Err(CommandError::AccountNotFound(account.id));
-    }
+// --- Accounts ---
 
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
+#[tauri::command]
+pub fn add_account(state: State<'_, AppState>, account: Account) -> CommandResult<Vault> {
+    mutate(&state, |v, now| vault_ops::add_account(v, account, now))
 }
 
 #[tauri::command]
-pub fn delete_account(
-    path: State<StoragePath>,
-    account_id: String,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
+pub fn update_account(state: State<'_, AppState>, account: Account) -> CommandResult<Vault> {
+    mutate(&state, |v, now| vault_ops::update_account(v, account, now))
+}
 
-    let initial_len = vault.accounts.len();
-    vault.accounts.retain(|a| a.id != account_id);
+#[tauri::command]
+pub fn delete_account(state: State<'_, AppState>, account_id: String) -> CommandResult<Vault> {
+    mutate(&state, |v, _| vault_ops::delete_account(v, &account_id))
+}
 
-    if vault.accounts.len() == initial_len {
-        return Err(CommandError::AccountNotFound(account_id));
-    }
-
-    // Also unlink services from this account
-    // This is a simple implementation. A more robust one might check if other accounts use these services.
-    // For now, we assume services can be linked to multiple accounts.
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
+#[tauri::command]
+pub fn delete_accounts(state: State<'_, AppState>, account_ids: Vec<String>) -> CommandResult<Vault> {
+    mutate(&state, |v, _| vault_ops::delete_accounts(v, &account_ids))
 }
 
 #[tauri::command]
 pub fn link_services_to_account(
-    path: State<StoragePath>,
+    state: State<'_, AppState>,
     account_id: String,
     service_ids: Vec<String>,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    if let Some(account) = vault.accounts.iter_mut().find(|a| a.id == account_id) {
-        account.linked_services.extend(service_ids.into_iter());
-        account.linked_services.sort();
-        account.linked_services.dedup();
-    } else {
-        return Err(CommandError::AccountNotFound(account_id));
-    }
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-
-    Ok(())
+) -> CommandResult<Vault> {
+    mutate(&state, |v, now| {
+        vault_ops::link_services_to_account(v, &account_id, &service_ids, now)
+    })
 }
 
 #[tauri::command]
-pub fn change_master_password(
-    path: State<StoragePath>,
-    old_password: String,
-    new_password: String,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_ref().ok_or(CommandError::VaultLocked)?;
-
-    let mut password_guard = session_state.master_password.lock().unwrap();
-    let session_password = password_guard.as_ref().ok_or(CommandError::VaultLocked)?;
-
-    if session_password.0 != old_password {
-        return Err(CommandError::InvalidOldPassword);
-    }
-    
-    let new_master_password = MasterPassword(new_password);
-
-    storage::save_vault(&path, &vault, &new_master_password)?;
-
-    *password_guard = Some(new_master_password);
-
-    Ok(())
+pub fn unlink_services_from_account(
+    state: State<'_, AppState>,
+    account_id: String,
+    service_ids: Vec<String>,
+) -> CommandResult<Vault> {
+    mutate(&state, |v, now| {
+        vault_ops::unlink_services_from_account(v, &account_id, &service_ids, now)
+    })
 }
 
-#[derive(Debug, serde::Deserialize)]
-pub struct BulkAccountConfig {
-    pub count: u32,
-    #[serde(rename = "nameTemplate")]
-    pub name_template: String,
-    #[serde(rename = "startNumber")]
-    pub start_number: u32,
-    pub tags: Vec<String>,
-    pub notes: String,
-}
-
-#[derive(Debug, serde::Deserialize)]
-pub struct ServiceLinkConfig {
-    #[serde(rename = "serviceTypeId")]
-    pub service_type_id: String,
-    #[serde(rename = "nameTemplate")]
-    pub name_template: String,
-    pub data: std::collections::HashMap<String, String>,
-    pub tags: Vec<String>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-pub struct BulkCreateRequest {
-    #[serde(rename = "accountConfig")]
-    pub account_config: BulkAccountConfig,
-    #[serde(rename = "linkServices")]
-    pub link_services: bool,
-    #[serde(rename = "serviceConfigs")]
-    pub service_configs: Vec<ServiceLinkConfig>,
+#[tauri::command]
+pub fn set_pinned(state: State<'_, AppState>, kind: String, id: String, pinned: bool) -> CommandResult<Vault> {
+    mutate(&state, |v, _| vault_ops::set_pinned(v, &kind, &id, pinned))
 }
 
 #[tauri::command]
 pub fn bulk_create_accounts(
-    path: State<StoragePath>,
+    state: State<'_, AppState>,
     request: BulkCreateRequest,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    let mut created_accounts = Vec::new();
-
-    // Create accounts
-    for i in 0..request.account_config.count {
-        let account_number = request.account_config.start_number + i;
-        let account_name = request.account_config.name_template.replace("%n%", &account_number.to_string());
-        
-        let account = Account {
-            id: uuid::Uuid::new_v4().to_string(),
-            label: account_name,
-            notes: request.account_config.notes.clone(),
-            tags: request.account_config.tags.clone(),
-            linked_services: Vec::new(),
-        };
-        
-        created_accounts.push(account.clone());
-        vault.accounts.push(account);
-    }
-
-    // Link existing services if requested
-    if request.link_services {
-        for account in &mut created_accounts {
-            let account_number = account.label
-                .chars()
-                .filter(|c| c.is_ascii_digit())
-                .collect::<String>()
-                .parse::<u32>()
-                .unwrap_or(1);
-
-            for service_config in &request.service_configs {
-                // Check if service type exists
-                if !vault.service_types.iter().any(|st| st.id == service_config.service_type_id) {
-                    continue; // Skip if service type doesn't exist
-                }
-
-                let service_name = service_config.name_template.replace("%n%", &account_number.to_string());
-                
-                // Search for existing service by name and service type
-                if let Some(existing_service) = vault.services.iter().find(|s| 
-                    s.label == service_name && s.service_type_id == service_config.service_type_id
-                ) {
-                    // Link existing service to account
-                    if let Some(vault_account) = vault.accounts.iter_mut().find(|a| a.id == account.id) {
-                        if !vault_account.linked_services.contains(&existing_service.id) {
-                            vault_account.linked_services.push(existing_service.id.clone());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    drop(vault_guard);
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-    Ok(())
+) -> CommandResult<BulkCreateResult> {
+    let now = now_millis();
+    let (vault, summary) = state.mutate(|v| vault_ops::bulk_create_accounts(v, &request, now))?;
+    Ok(BulkCreateResult { vault, summary })
 }
 
-// --- Email Commands ---
-
-use crate::email_client::EmailClient;
-use crate::email_providers::is_provider_supported;
-use crate::models::{EmailConnection, EmailFetchResult};
+// --- Clipboard ---
 
 #[tauri::command]
-pub fn is_email_provider_supported(email: String) -> bool {
-    is_provider_supported(&email)
+pub async fn clipboard_copy(
+    app: AppHandle,
+    text: String,
+    clear_after_seconds: Option<u32>,
+) -> CommandResult<()> {
+    let text = secret(text);
+    let handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || clipboard::copy(&handle, &text, clear_after_seconds))
+        .await?
 }
 
 #[tauri::command]
-pub fn test_email_connection(
-    email: String,
-    password: String,
-) -> Result<EmailConnection, String> {
-    let client = EmailClient::new(email, password)
-        .map_err(|e| e.to_string())?;
-    
-    client.test_connection()
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn fetch_recent_emails(
-    email: String,
-    password: String,
-    limit: Option<u32>,
-) -> Result<EmailFetchResult, String> {
-    let client = EmailClient::new(email, password)
-        .map_err(|e| e.to_string())?;
-    
-    let limit = limit.unwrap_or(5); // Default to 5 emails
-    client.fetch_recent_emails(limit)
-        .map_err(|e| e.to_string())
-}
-
-// --- Export/Import Commands ---
-
-#[tauri::command]
-pub fn export_vault(
-    path: State<StoragePath>,
-    export_path: String,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<(), CommandError> {
-    let vault_guard = app_state.0.lock().unwrap();
-    let vault = vault_guard.as_ref().ok_or(CommandError::VaultLocked)?;
-
-    let password_guard = session_state.master_password.lock().unwrap();
-    let password = password_guard
-        .as_ref()
-        .ok_or(CommandError::VaultLocked)?;
-
-    // Export the vault using the same encryption as the main vault
-    storage::save_vault_to_path(&export_path, vault, password)?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn import_vault(
-    path: State<StoragePath>,
-    import_path: String,
-    password: String,
-    merge_strategy: String,
-    app_state: State<AppState>,
-    session_state: State<SessionState>,
-) -> Result<Vault, CommandError> {
-    // Load the imported vault
-    let import_password = MasterPassword(password);
-    let imported_vault = storage::load_vault_from_path(&import_path, &import_password)?;
-    
-    let mut vault_guard = app_state.0.lock().unwrap();
-    let current_vault = vault_guard.as_mut().ok_or(CommandError::VaultLocked)?;
-
-    // Apply merge strategy
-    match merge_strategy.as_str() {
-        "replace" => {
-            *current_vault = imported_vault;
-        }
-        "merge" => {
-            merge_vaults(current_vault, imported_vault);
-        }
-        _ => return Err(CommandError::Storage("Invalid merge strategy. Must be 'replace' or 'merge'".to_string())),
-    }
-
-    let result_vault = current_vault.clone();
-    drop(vault_guard);
-    
-    // Save the updated vault
-    save_vault_with_session_password(&path, &app_state, &session_state)?;
-    
-    Ok(result_vault)
-}
-
-// Helper function to merge two vaults
-fn merge_vaults(current: &mut Vault, imported: Vault) {
-    // Merge service types (avoid duplicates by ID)
-    for imported_st in imported.service_types {
-        if !current.service_types.iter().any(|st| st.id == imported_st.id) {
-            current.service_types.push(imported_st);
-        }
-    }
-    
-    // Merge services (avoid duplicates by ID)
-    for imported_service in imported.services {
-        if !current.services.iter().any(|s| s.id == imported_service.id) {
-            current.services.push(imported_service);
-        }
-    }
-    
-    // Merge accounts (avoid duplicates by ID)
-    for imported_account in imported.accounts {
-        if !current.accounts.iter().any(|a| a.id == imported_account.id) {
-            current.accounts.push(imported_account);
-        }
-    }
-    
-    // Keep current settings (don't merge settings)
+pub async fn clipboard_clear(app: AppHandle) -> CommandResult<()> {
+    let handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || clipboard::clear_if_owned(&handle).map(|_| ()))
+        .await?
 }

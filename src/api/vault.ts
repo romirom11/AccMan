@@ -1,114 +1,170 @@
-import { invoke } from '@tauri-apps/api/core';
-import { toast } from 'sonner';
-import type { Vault, ServiceType, Service, Account, Settings, BulkCreateRequest, EmailConnection, EmailFetchResult } from '@/types';
-import i18n from '@/i18n';
+import { invoke } from "@tauri-apps/api/core"
+import { toast } from "sonner"
+import type {
+  AccountInput,
+  BackupInfo,
+  BulkCreateRequest,
+  BulkCreateResult,
+  EmailConnection,
+  EmailFetchResult,
+  ImportResult,
+  MergeStrategy,
+  PinKind,
+  ServiceInput,
+  ServiceType,
+  Settings,
+  Vault,
+} from "@/types"
+import { getErrorMessage, toApiError } from "@/lib/errors"
+
+export interface CallOptions {
+  /** Do not show the error toast (the caller displays the error itself). */
+  silent?: boolean
+}
 
 /**
- * Універсальна функція-обгортка для викликів API Rust-бекенду.
- * Централізовано обробляє помилки та показує відповідні toast-повідомлення.
- * @param command Назва команди Tauri для виклику.
- * @param args Аргументи, що передаються команді.
- * @param successMessageKey Ключ перекладу для повідомлення про успіх.
- * @returns Повертає результат виконання команди.
+ * Invokes a Tauri command. On failure it converts the rejection into an `ApiError`,
+ * shows ONE localised error toast (unless `silent`) and rethrows the ApiError.
+ * Success toasts are the store's job, not this layer's.
  */
-async function callApi<T>(
+export async function callApi<T>(
   command: string,
   args?: Record<string, unknown>,
-  successMessageKey?: string,
+  options?: CallOptions,
 ): Promise<T> {
   try {
-    const result = await invoke<T>(command, args);
-    if (successMessageKey) {
-      toast.success(i18n.t(successMessageKey));
+    return await invoke<T>(command, args)
+  } catch (error) {
+    const apiError = toApiError(error, command)
+    console.error(`API error in '${command}': [${apiError.code}] ${apiError.message}`)
+    if (!options?.silent) {
+      toast.error(getErrorMessage(apiError))
     }
-    return result;
-  } catch (error: any) {
-    const errorMessage = typeof error === 'string' ? error : (error.message || 'An unknown error occurred');
-    console.error(`API Error on command '${command}':`, errorMessage);
-    toast.error(`${i18n.t('api.error.prefix')}: ${errorMessage}`);
-    throw new Error(errorMessage);
+    throw apiError
   }
 }
 
 export const vaultApi = {
-  vaultExists: () => callApi<boolean>('vault_exists'),
+  // Vault lifecycle
+  vaultExists: (opts?: CallOptions) => callApi<boolean>("vault_exists", undefined, opts),
 
-  getDefaultServiceTypesList: () => callApi<ServiceType[]>('get_default_service_types_list'),
+  getDefaultServiceTypesList: (opts?: CallOptions) =>
+    callApi<ServiceType[]>("get_default_service_types_list", undefined, opts),
 
-  createVault: (password: string, settings: Settings, selectedServiceTypeIds: string[]) =>
-    callApi<Vault>('create_vault', { password, settings, selectedServiceTypeIds }, 'api.success.vault_created'),
+  createVault: (password: string, settings: Settings, selectedServiceTypeIds: string[], opts?: CallOptions) =>
+    callApi<Vault>("create_vault", { password, settings, selectedServiceTypeIds }, opts),
 
-  unlockVault: (password: string) =>
-    callApi<Vault>('unlock_vault', { password }),
+  unlockVault: (password: string, opts?: CallOptions) => callApi<Vault>("unlock_vault", { password }, opts),
 
-  lockVault: () =>
-    callApi<void>('lock_vault'),
+  /** Idempotent: succeeds when already locked. */
+  lockVault: (opts?: CallOptions) => callApi<void>("lock_vault", undefined, opts),
 
-  // Settings
-  updateSettings: (settings: Settings) =>
-    callApi<void>('update_settings', { settings }),
-  changePassword: (oldPassword: string, newPassword: string) =>
-    callApi<void>('change_master_password', { oldPassword, newPassword }, 'api.success.password_changed'),
+  getVault: (opts?: CallOptions) => callApi<Vault>("get_vault", undefined, opts),
 
-  // Service Types
-  addServiceType: (serviceType: ServiceType) =>
-    callApi<void>('add_service_type', { serviceType }, 'api.success.service_type_added'),
+  // Settings & password
+  updateSettings: (settings: Settings, opts?: CallOptions) => callApi<Vault>("update_settings", { settings }, opts),
 
-  updateServiceType: (serviceType: ServiceType) =>
-    callApi<void>('update_service_type', { serviceType }, 'api.success.service_type_updated'),
+  changePassword: (oldPassword: string, newPassword: string, opts?: CallOptions) =>
+    callApi<void>("change_master_password", { oldPassword, newPassword }, opts),
 
-  deleteServiceType: (serviceTypeId: string) =>
-    callApi<void>('delete_service_type', { serviceTypeId }, 'api.success.service_type_deleted'),
+  // Export / import / backups
+  exportVault: (exportPath: string, password: string, opts?: CallOptions) =>
+    callApi<void>("export_vault", { exportPath, password }, opts),
+
+  importVault: (importPath: string, password: string, mergeStrategy: MergeStrategy, opts?: CallOptions) =>
+    callApi<ImportResult>("import_vault", { importPath, password, mergeStrategy }, opts),
+
+  /** Newest first. Works while locked. */
+  listBackups: (opts?: CallOptions) => callApi<BackupInfo[]>("list_backups", undefined, opts),
+
+  /** Works locked or unlocked; leaves the session unlocked with the restored vault. */
+  restoreBackup: (fileName: string, password: string, opts?: CallOptions) =>
+    callApi<Vault>("restore_backup", { fileName, password }, opts),
+
+  // Service types
+  addServiceType: (serviceType: ServiceType, opts?: CallOptions) =>
+    callApi<Vault>("add_service_type", { serviceType }, opts),
+
+  updateServiceType: (serviceType: ServiceType, opts?: CallOptions) =>
+    callApi<Vault>("update_service_type", { serviceType }, opts),
+
+  deleteServiceType: (serviceTypeId: string, cascade: boolean, opts?: CallOptions) =>
+    callApi<Vault>("delete_service_type", { serviceTypeId, cascade }, opts),
 
   // Services
-  addService: (service: Service, accountId?: string) =>
-    callApi<void>('add_service', { service, accountId }, 'api.success.service_added'),
-  addServices: (services: Service[]) =>
-    callApi<void>('add_services', { services }),
-  
-  updateService: (service: Service) =>
-    callApi<void>('update_service', { service }, 'api.success.service_updated'),
+  addService: (service: ServiceInput, accountId?: string, opts?: CallOptions) =>
+    callApi<Vault>("add_service", accountId ? { service, accountId } : { service }, opts),
 
-  deleteService: (serviceId: string) =>
-    callApi<void>('delete_service', { serviceId }, 'api.success.service_deleted'),
+  addServices: (services: ServiceInput[], opts?: CallOptions) => callApi<Vault>("add_services", { services }, opts),
 
-  deleteServices: (serviceIds: string[]) =>
-    callApi<void>('delete_services', { serviceIds }, 'api.success.services_deleted'),
+  updateService: (service: ServiceInput, opts?: CallOptions) => callApi<Vault>("update_service", { service }, opts),
+
+  deleteService: (serviceId: string, opts?: CallOptions) => callApi<Vault>("delete_service", { serviceId }, opts),
+
+  deleteServices: (serviceIds: string[], opts?: CallOptions) =>
+    callApi<Vault>("delete_services", { serviceIds }, opts),
 
   // Accounts
-  addAccount: (account: Account) =>
-    callApi<void>('add_account', { account }, 'api.success.account_added'),
+  addAccount: (account: AccountInput, opts?: CallOptions) => callApi<Vault>("add_account", { account }, opts),
 
-  updateAccount: (account: Account) =>
-    callApi<void>('update_account', { account }, 'api.success.account_updated'),
+  updateAccount: (account: AccountInput, opts?: CallOptions) => callApi<Vault>("update_account", { account }, opts),
 
-  deleteAccount: (accountId: string) =>
-    callApi<void>('delete_account', { accountId }, 'api.success.account_deleted'),
-    
-  linkServicesToAccount: (accountId: string, serviceIds: string[]) =>
-    callApi<void>('link_services_to_account', { accountId, serviceIds }, 'api.success.services_linked'),
+  deleteAccount: (accountId: string, opts?: CallOptions) => callApi<Vault>("delete_account", { accountId }, opts),
 
-  bulkCreateAccounts: (request: BulkCreateRequest) =>
-    callApi<void>('bulk_create_accounts', { request: request as unknown as Record<string, unknown> }, 'api.success.bulk_accounts_created'),
+  deleteAccounts: (accountIds: string[], opts?: CallOptions) =>
+    callApi<Vault>("delete_accounts", { accountIds }, opts),
 
-  // Get current vault state
-  getVault: () =>
-    callApi<Vault>('get_vault'),
+  linkServicesToAccount: (accountId: string, serviceIds: string[], opts?: CallOptions) =>
+    callApi<Vault>("link_services_to_account", { accountId, serviceIds }, opts),
 
-  // Email operations
-  isEmailProviderSupported: (email: string) =>
-    callApi<boolean>('is_email_provider_supported', { email }),
+  unlinkServicesFromAccount: (accountId: string, serviceIds: string[], opts?: CallOptions) =>
+    callApi<Vault>("unlink_services_from_account", { accountId, serviceIds }, opts),
 
-  testEmailConnection: (email: string, password: string) =>
-    callApi<EmailConnection>('test_email_connection', { email, password }),
+  setPinned: (kind: PinKind, id: string, pinned: boolean, opts?: CallOptions) =>
+    callApi<Vault>("set_pinned", { kind, id, pinned }, opts),
 
-  fetchRecentEmails: (email: string, password: string, limit?: number) =>
-    callApi<EmailFetchResult>('fetch_recent_emails', { email, password, limit: limit || 5 }),
+  bulkCreateAccounts: (request: BulkCreateRequest, opts?: CallOptions) =>
+    callApi<BulkCreateResult>("bulk_create_accounts", { request }, opts),
 
-  // Export/Import
-  exportVault: (exportPath: string) =>
-    callApi<void>('export_vault', { exportPath }),
+  // Clipboard
+  clipboardCopy: (text: string, clearAfterSeconds?: number, opts?: CallOptions) =>
+    callApi<void>("clipboard_copy", clearAfterSeconds && clearAfterSeconds > 0 ? { text, clearAfterSeconds } : { text }, opts),
 
-  importVault: (importPath: string, password: string, mergeStrategy: 'replace' | 'merge') =>
-    callApi<Vault>('import_vault', { importPath, password, mergeStrategy }),
-};
+  clipboardClear: (opts?: CallOptions) => callApi<void>("clipboard_clear", undefined, opts),
+
+  // Email
+  isEmailProviderSupported: (email: string, imapHost?: string, opts?: CallOptions) =>
+    callApi<boolean>("is_email_provider_supported", withOptional({ email }, { imapHost }), opts),
+
+  testEmailConnection: (email: string, password: string, imapHost?: string, imapPort?: number, opts?: CallOptions) =>
+    callApi<EmailConnection>("test_email_connection", withOptional({ email, password }, { imapHost, imapPort }), opts),
+
+  fetchRecentEmails: (
+    email: string,
+    password: string,
+    limit?: number,
+    imapHost?: string,
+    imapPort?: number,
+    opts?: CallOptions,
+  ) =>
+    callApi<EmailFetchResult>(
+      "fetch_recent_emails",
+      withOptional({ email, password, limit: limit ?? 5 }, { imapHost, imapPort }),
+      opts,
+    ),
+}
+
+/** Adds optional args only when they carry a value (empty strings count as unset). */
+function withOptional(
+  args: Record<string, unknown>,
+  optional: Record<string, string | number | undefined | null>,
+): Record<string, unknown> {
+  const result = { ...args }
+  for (const [key, value] of Object.entries(optional)) {
+    if (value === undefined || value === null) continue
+    if (typeof value === "string" && value.trim() === "") continue
+    if (typeof value === "number" && !Number.isFinite(value)) continue
+    result[key] = typeof value === "string" ? value.trim() : value
+  }
+  return result
+}

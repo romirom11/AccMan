@@ -35,9 +35,32 @@ tauri-plugin-dialog = "2.3.3"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 uuid = { version = "1.18.0", features = ["v4"] }
+# Pinned: newer releases require a newer tauri than the one locked here.
+tauri-plugin-clipboard-manager = "=2.3.2"
 
 # Email client dependencies
 imap = "2.4"
 native-tls = "0.2"
 regex = "1.0"
 mail-parser = "0.11.1"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+# Pinned for the same reason as the clipboard plugin.
+tauri-plugin-single-instance = "=2.3.4"
+
+# scrypt is unusably slow without optimisations; keep debug builds and `cargo test`
+# responsive (the vault KDF runs on every unlock).
+[profile.dev.package.scrypt]
+opt-level = 3
+
+[profile.dev.package.salsa20]
+opt-level = 3
+
+[profile.dev.package.pbkdf2]
+opt-level = 3
+
+[profile.dev.package.sha2]
+opt-level = 3
+
+[profile.dev.package.hmac]
+opt-level = 3

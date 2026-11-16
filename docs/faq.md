@@ -32,23 +32,25 @@ AccMan is designed specifically for managing multiple accounts per service. Whil
 
 ### Is my data safe?
 
-Yes, your data is protected by:
-- **AES-256 encryption** for all stored data
-- **Local storage only** - data never leaves your device
-- **Master password protection** - only you can access your vault
-- **Memory clearing** - sensitive data is removed from memory when locked
+Your data is protected by:
+- **AES-256-GCM encryption** of the whole vault, with the key derived from your master password by scrypt (logN=17, r=8, p=1)
+- **Local storage only** - the vault never leaves your device. The network is used only for IMAP when you open an inbox in the email viewer, and to check GitHub for updates
+- **Master password protection** - the master password is not stored; only a derived key is kept in memory while the vault is unlocked
+- **Auto-lock and clipboard clearing** - the vault locks after inactivity, and copied secrets are cleared from the clipboard after a configurable time and on lock, if the clipboard still holds them
+- **Crash-safe saves and automatic backups** - a crash during a save cannot corrupt the vault, and encrypted automatic backups let you go back
 
 ### What happens if I forget my master password?
 
-Unfortunately, there's no way to recover a forgotten master password. This is by design to ensure maximum security. If you forget your master password, you'll need to:
-1. Delete the vault file
-2. Create a new vault
-3. Re-enter all your data
+There's no way to recover a forgotten master password. This is by design. What you can still do:
+- **Restore an automatic backup** whose password you remember (for example one taken before you changed the master password): on the lock screen click **Restore from backup**. The backup's password becomes your master password.
+- **Import an export** into a new vault if you know the export password.
+
+Otherwise you will need to delete the vault file, create a new vault and enter your data again.
 
 To prevent this, consider:
-- Using a memorable but strong password
+- Using a memorable but strong password (the built-in generator can help)
 - Writing it down and storing it securely
-- Regular data exports as backups
+- Exporting the vault regularly to another drive, with an export password you will remember
 
 ### Can AccMan be hacked?
 
@@ -81,19 +83,18 @@ AccMan is safe to use. You can:
 
 ### Can I install AccMan on multiple devices?
 
-Yes, you can install AccMan on multiple devices, but each installation will have its own separate vault. To sync data between devices, you'll need to:
-1. Export data from one device
-2. Import it on another device
-3. Manually keep them synchronized
+Yes, you can install AccMan on multiple devices, but each installation will have its own separate vault. To move data between devices:
+1. Export the vault on one device (**Settings → Export & Import → Export Vault**) with an export password
+2. Import the file on the other device with that password, choosing **Merge** or **Replace**
+3. Repeat when needed; there is no automatic sync
+
+On one device, only one AccMan instance runs at a time: starting it again focuses the open window.
 
 ### How do I update AccMan?
 
-Currently, updates are manual:
-1. Download the latest version from GitHub releases
-2. Install it over your existing installation
-3. Your vault data will be preserved
+AccMan checks for updates when it starts and asks before downloading and installing a new version; you can also click **Settings → About → Check for updates**. Alternatively, download the latest version from GitHub releases and install it over the existing installation.
 
-Automatic updates may be added in future versions.
+Your vault is preserved. A vault created by an older version of AccMan uses an older file format; it opens normally, and after the first unlock AccMan backs up the old file and upgrades the vault to the current format automatically.
 
 ## Usage Questions
 
@@ -132,32 +133,50 @@ For accounts shared between multiple people:
 
 ### Can I import data from other password managers?
 
-AccMan supports importing from:
-- CSV files (common export format)
-- JSON files
-- Plain text files
-
-To import from other password managers:
-1. Export your data from the other tool
-2. Use AccMan's bulk import feature
-3. Map the fields appropriately
-4. Review and clean up the imported data
+There is no direct importer for other password managers. You can import services from text, one line per service, with a separator of your choice (for example a CSV export or a `login:password` list):
+1. Export your data from the other tool as text/CSV
+2. Open **Import services** (dashboard, Services page or command palette)
+3. Choose the service type and separator, and map the columns to fields
+4. Check the preview and import
 
 ### How do I backup my data?
 
-1. Go to **Settings** > **Export Data**
-2. Choose your export format (JSON recommended for complete backups)
-3. Save the file to a secure location
-4. Consider encrypting the backup file separately
-5. Store backups in multiple locations (cloud storage, external drives)
+AccMan takes **automatic encrypted backups** of the vault (before the first change after each unlock, before a password change, an import or a restore, and before a format upgrade) and keeps the newest 15. They are stored next to the vault, so they do not protect you against losing the disk. For that:
+1. Go to **Settings** > **Export & Import** > **Export Vault**
+2. Choose an export password (at least 8 characters) and confirm it. You will need it to import the file
+3. Save the file; AccMan verifies it after writing
+4. Store copies in more than one place (for example an external drive)
+
+Export files and automatic backups are encrypted; there is no plaintext export.
+
+### I exported the vault with an older version and the export password does not work
+
+Older versions of AccMan encrypted export files with the master password that was in use at the time of the export and ignored the password typed in the export dialog. Import such files with that master password. Export files made with the current version use the export password.
+
+### How do I restore an automatic backup?
+
+On the lock screen click **Restore from backup**, or use **Settings → Automatic backups → Restore from backup**. Choose a backup, enter the master password that was valid when it was taken and confirm. The current vault is backed up first, and the backup's password becomes your master password.
+
+### Why is my clipboard cleared?
+
+Masked (secret) values, 2FA codes, 2FA keys and generated passwords copied with AccMan's copy buttons are cleared from the clipboard after the time set in **Settings → Clear clipboard after** (default 30 seconds), if the clipboard still holds them. In addition, when the vault locks or AccMan closes, anything AccMan copied (including non-secret values such as usernames or links) is cleared if it is still on the clipboard. If you copied something else in the meantime, it is left alone.
+
+Setting **Clear clipboard after** to **Never** turns off only the timed clearing; the clearing on lock and on close still happens.
+
+### Can copied secrets stay in clipboard history?
+
+Yes. AccMan can only clear the current clipboard content. Clipboard history and cloud clipboard features keep their own copies: for example Windows clipboard history (**Win+V**) and its "Sync across devices" option, or clipboard managers such as Klipper on KDE. If you copy secrets from AccMan, turn these features off (on Windows: **Settings → System → Clipboard**) or clear their history after use.
 
 ### Why can't I see my 2FA codes?
 
-If 2FA codes aren't generating:
-1. Ensure you've entered the correct secret key
-2. Check that the field type is set to "2FA"
-3. Verify your system clock is accurate
-4. Try re-entering the 2FA secret
+2FA fields show the current code live with a countdown. If no code appears:
+1. Check the field type is **2FA** (fields with the key `2fa_key` are converted automatically)
+2. Check the secret: base32 (spaces and lowercase are fine) or an `otpauth://` URI. An invalid secret is shown in red and listed in **Vault health**
+3. If codes are rejected by the website, make sure your system clock is accurate
+
+### Which email providers work with the inbox view?
+
+Gmail, Outlook/Hotmail/Live, Yahoo, iCloud, GMX, Mail.ru, Yandex, Rambler, UKR.NET, I.UA, META.UA, Zoho, AOL and FirstMail are detected from the address. Any other mailbox works if you fill in the **IMAP Host** (and **IMAP Port**, default 993) fields of the Email service and the server offers IMAP over implicit TLS (IMAPS, usually port 993) with a certificate your system trusts. Servers that only offer STARTTLS (usually port 143) or unencrypted IMAP are not supported. Proton Mail is not supported: its Proton Bridge uses STARTTLS and a self-signed certificate by default. Many providers require an app password for IMAP; Microsoft has disabled password-based IMAP for most personal Outlook accounts.
 
 ## Technical Issues
 
@@ -181,18 +200,17 @@ Performance issues may be caused by:
 ### I can't unlock my vault
 
 If you can't unlock your vault:
-1. **Double-check your password** - ensure caps lock is off
-2. **Try typing slowly** - avoid rapid keystrokes
-3. **Restart AccMan** - close and reopen the application
-4. **Check vault file** - ensure it hasn't been corrupted or moved
+1. **Double-check your password** - the lock screen warns when Caps Lock is on
+2. **Check the keyboard layout** - the password is case- and layout-sensitive
+3. **Restore a backup** - if the vault file is reported as damaged, or you remember an older password, click **Restore from backup** on the lock screen
 
 ### Data appears corrupted
 
 If your data seems corrupted:
-1. **Don't panic** - try restarting AccMan first
-2. **Check backups** - restore from a recent export
-3. **Contact support** - create a GitHub issue with details
-4. **Preserve the vault file** - don't delete it, it might be recoverable
+1. **Don't panic** - saves are atomic, so the vault file is either the old or the new version
+2. **Restore an automatic backup** from the lock screen or Settings, or import a recent export
+3. **Preserve the vault file** - don't delete it; the current file is also backed up automatically before a restore
+4. **Contact support** - create a GitHub issue with details (never attach the vault file)
 
 ### AccMan crashes frequently
 

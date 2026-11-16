@@ -10,7 +10,6 @@ This directory contains the documentation website for AccMan, built with Jekyll 
 - `developer-guide.md` - Development and contribution guide
 - `faq.md` - Frequently asked questions
 - `contributing.md` - Contribution guidelines
-- `github-pages-setup.md` - Instructions for setting up GitHub Pages
 - `_config.yml` - Jekyll configuration
 - `assets/` - Static assets (CSS, images, etc.)
 
@@ -23,12 +22,10 @@ To run the documentation site locally:
    gem install bundler jekyll
    ```
 
-2. Create Gemfile:
+2. Install the gems listed in the existing `Gemfile`:
    ```bash
    cd docs
-   bundle init
-   bundle add jekyll
-   bundle add minima
+   bundle install
    ```
 
 3. Serve locally:
@@ -40,7 +37,7 @@ To run the documentation site locally:
 
 ## Deployment
 
-The site is automatically deployed to GitHub Pages when changes are pushed to the main branch. See `github-pages-setup.md` for detailed setup instructions.
+The site is deployed to GitHub Pages from this directory (see `_config.yml`).
 
 ## Contributing
 
